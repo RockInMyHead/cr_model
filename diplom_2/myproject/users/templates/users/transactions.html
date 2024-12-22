@@ -1,0 +1,44 @@
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <label for="id_bin">Страна эмитента:</label>
+        {{form.bin}}
+    </div>
+    <div>
+        <label for="id_password">Вид карты:</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_bin">BIN:</label>
+        {{form.bin}}
+    </div>
+    <div>
+        <label for="id_password">Сумма транзакции:</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_password">Подтверждена карта:</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_password">Страна получателя:</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_password">День :</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_password">Месяц:</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_password">Время в секундах:</label>
+        {{ form.password }}
+    </div>
+    <div>
+        <label for="id_password">cvs код:</label>
+        {{ form.password }}
+    </div>
+    <button type="submit">Отправить</button>
+</form>

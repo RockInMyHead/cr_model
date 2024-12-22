@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+ <h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+{% endblock %}
+
+{% block nav-global %}
+{% if user.is_authenticated %}
+<p>Добро пожаловать, администратор!</p>
+<ul>
+    <li>Имя пользователя: {{ user.username }}</li>
+    <li>Электронная почта: {{ user.email }}</li>
+    <li>Дата последнего входа: {{ user.last_login }}</li>
+    <li>Дата регистрации: {{ user.date_joined }}</li>
+  </ul>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,424 @@
+@font-face {
+    src:url(../Fonts/Lobster-Regular.ttf);
+    font-family:Lobster;
+   }
+   @font-face {
+    src:url(../Fonts/Inter-VariableFont_slnt,wght.ttf);
+    font-family:Inter;
+   }
+   @font-face {
+    src:url(../Fonts/Jost-VariableFont_wght.ttf);
+    font-family:Jost;
+   }
+   body { margin:0;}
+   .header
+   {
+     position: absolute;
+     width: 1835px;
+     height: 114px;
+     left: 0px;
+     top: 0px;
+     background: #006C7B;
+     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+     border-radius: 0px 0px 40px 0px;
+   }
+   .IMGLOGO
+   {
+     position: absolute;
+     width: 638px;
+     height: 114px;
+     left: 0px;
+     top: 0px;
+   }
+   .logo
+   {
+     position: absolute;
+     width: 638px;
+     height: 106px;
+     left: 0px;
+     top: -6px;
+     background: #006C7B;
+   }
+   .log3
+   {
+     position: absolute;
+     width: 623px;
+     height: 114px;
+     top: 6px;
+   }
+   .butt1
+   {
+     position: absolute;
+     width: 259px;
+     height: 67px;
+     left: 648px;
+     top: 22px;
+     background: #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt1:hover
+   {
+       background: #7eaeb5;
+   }
+   .a1
+   {
+   
+position: absolute;
+   
+width: 120px;
+   
+height: 44px;
+   
+left: 85px;
+   
+top: 12px;
+   
+text-decoration: none;
+   
+font-family: 'Inter';
+   
+font-style: normal;
+   
+font-weight: 380;
+   
+font-size: 36px;
+   
+line-height: 44px;
+   /* identical to box height */
+   
+display: flex;
+   
+align-items: center;
+   
+text-align: center;
+   
+color: #323232;
+   }
+   .a1:hover
+   {
+       color:white;
+   }
+   .butt2
+   {
+     position: absolute;
+     width: 239px;
+     height: 67px;
+     left: 940px;
+     top: 22px;
+     background:  #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt2:hover
+   {
+       background: #7eaeb5;
+   }
+   .a2
+   {
+     position: absolute;
+     width: 112px;
+     height: 44px;
+     left: 65px;
+     top: 12px;
+     text-decoration: none;
+     font-family: 'Inter';
+     font-style: normal;
+     font-weight: 380;
+     font-size: 36px;
+     line-height: 44px;
+     display: flex;
+     align-items: center;
+     text-align: center;
+     color: #323232;
+   }
+   .a2:hover
+   {
+       color:white;
+   }
+   .butt3
+   {
+     position: absolute;
+     width: 269px;
+     height: 67px;
+     left: 1232px;
+     top: 22px;
+     background: #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt3:hover
+   {
+       background: #7eaeb5;
+   }
+   .a3
+   {
+    position: absolute;
+    width: 291px;
+    height: 44px;
+    left: -11px;
+    top: 12px;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 44px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    text-decoration:none;
+    color: #323232;
+    justify-content: center;
+   }
+   .a3:hover
+   {
+       color:white;
+   }
+   .butt5
+   {
+     position: absolute;
+     width: 239px;
+     height: 67px;
+     left: 1530px;
+     top: 22px;
+     background: #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt5:hover
+   {
+       background: #7eaeb5;
+   }
+   .a5
+   {
+    position: absolute;
+    width: 291px;
+    height: 44px;
+    left: -20px;
+    top: 12px;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 44px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    text-decoration:none;
+    color: #323232;
+    justify-content: center;
+   }
+   .a5:hover
+   {
+       color:white;
+   }
+   .inf
+   {
+     position: absolute;
+     width: 593px;
+     height: 723px;
+     left: 55px;
+     top: 178px;
+   
+     background: #006C7B;
+     border-radius: 0px 40px;
+   }
+   .gret
+   {
+     position: absolute;
+     width: 524px;
+     height: 96px;
+     left: 37px;
+     top: 32px;
+   
+     background: #FFFFFF;
+     border-radius: 0px 40px;
+   }
+   .gretP
+   {
+     position: absolute;
+     width: 500px;
+     height: 96px;
+     left: 64px;
+     font-family: 'Lobster';
+     font-style: normal;
+     font-weight: 400;
+     font-size: 48px;
+     line-height: 60px;
+     display: flex;
+     align-items: center;
+     text-align: center;
+   
+     color: #07545F;
+   
+   
+   }
+   .content
+   {
+     position: absolute;
+     width: 524px;
+     height: 533px;
+     left: 37px;
+     top: 156px;
+   
+     background: #FFFFFF;
+     border-radius: 0px 40px;
+   }
+   .contentP
+   {
+     position: absolute;
+     width: 468px;
+     height: 501px;
+     left: 28px;
+     top: 14px;
+   
+     font-family: 'Jost';
+     font-style: normal;
+     font-weight: 400;
+     font-size: 32px;
+     line-height: 46px;
+     text-align: justify;
+   
+     color: #0E285A;
+   }
+   .mainImg
+   {
+     position: absolute;
+     width: 1085px;
+     height: 723px;
+     left: 740px;
+     top: 175px;
+   
+     background: #FFABAB;
+     border-radius: 40px 0px;
+   }
+   .footer
+   {
+     position: absolute;
+     width: 1835px;
+     height: 114px;
+     left: 0px;
+     top: 960px;
+   
+     background: #07545F;
+     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+     border-radius: 0px 0px 40px 0px;
+   }
+   .log4
+   {
+     position: absolute;
+     width: 750px;
+     height: 114px;
+     left: 0px;
+     top: 0px;
+   
+     background: #006C7B;
+     border-radius: 40px 0px 0px 0px;
+   }
+   .log4P
+   {
+     position: absolute;
+     width: 700px;
+     height: 79px;
+     left: 34px;
+     top: 25px;
+   
+     font-family: 'Lobster';
+     font-style: normal;
+     font-weight: 400;
+     font-size: 32px;
+     line-height: 40px;
+   
+     color: #ffffff;
+   }
+   .butt4
+   {
+     position: absolute;
+     width: 350px;
+     height: 69px;
+     left: 860px;
+     top: 23px; 
+     background: #006C7B;
+     border-radius: 20px 0px;
+     border: none; /* Убираем границу */
+     outline: none; /* Убираем обводку при фокусе */
+     pointer-events: none; /* Делаем кнопку некликабельной */
+     cursor: default; /* Меняем курсор на стандартный */
+   }
+   .log5
+   {
+     position: absolute;
+     width:200px;
+     height: 114px;
+     left: 1290px;
+     top: 0px;
+   
+     background: #006C7B;
+   }
+   .log6
+   {
+     position: absolute;
+     width: 200px;
+     height: 114px;
+     left: 1510px;
+     top: 0px;
+   
+     background: #07545F;
+   }
+   .log7
+   {
+     position: absolute;
+     width: 180px;
+     height: 114px;
+     left: 1655px;
+     top: 0px;
+   
+     background: #006C7B;
+   }
+   .img3
+   {
+     position: absolute;
+     width: 77px;
+     height: 77px;
+     left: 61px;
+     top: 18px;
+   
+     filter: drop-shadow(0px 0px 4px rgba(0, 0, 0, 0.25));
+   }
+   .img4
+   {
+     position: absolute;
+     width: 77px;
+     height: 77px;
+     left: 30px;
+     top: 17px;
+   
+   }
+   .img5
+   {
+     position: absolute;
+     width: 77px;
+     height: 77px;
+     left: 61px;
+     top: 18px;
+   
+   }
+   .a6
+   {
+     position: absolute;
+     width: 352px;
+     height: 44px;
+     left: 30px;
+     top: 12px;
+   
+     font-family: 'Inter';
+     font-style: normal;
+     font-weight: 400;
+     font-size: 36px;
+     line-height: 44px;
+     /* identical to box height */
+   
+     display: flex;
+     align-items: center;
+     text-align: center;
+   
+     color: #ffffff;
+     text-decoration: none; 
+   }
+   

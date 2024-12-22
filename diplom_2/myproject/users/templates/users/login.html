@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
+    <link rel="stylesheet" href="../../static/users/css/style_login.css">
+</head>
+<body>
+<!--
+    <div class="header">
+        <div class="IMGLOGO">
+            <div class="logo">
+                <img class="log3" src="../../static/users/images/logo 2.png" alt="Логотип">
+                <a class="log3"   href="/"></a>
+            </div>
+        </div>
+        <button class="butt1" type="button" name="О нас"><a class="a1" href="/inf">О нас</a></button>
+        <button class="butt2" type="button" name="Услуги"><a class="a2" href="/services">Услуги</a></button>
+        <button class="butt3" type="button" name="Вход"><a class="a3" href="/login">Вход</a></button>
+        <button class="butt5" type="button" name="Главная"><a class="a5" href="/">Главная</a></button>
+    </div>
+  -->
+    <h1>Login</h1>
+    {% if form.errors %}
+        <p style="color: red;">Имя пользователя или пароль указаны неверно</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            <label for="id_username">Username:</label>
+            {{ form.username }}
+        </div>
+        <div>
+            <label for="id_password">Password:</label>
+            {{ form.password }}
+        </div>
+        <button type="submit">Login</button>
+    </form>
+
+    <p>Нет аккаунта? <a href="{% url 'users:register' %}">Зарегистрируйтесь</a></p>
+</body>
+
+    <div class="footer">
+        <div class="log4">
+            <p class="log4P">© 2024-2025  «Security Fraud Guard»   Все права защищены </p>
+        </div>
+        <div><button class="butt4" type="button" name="Телефон"><a class="a6">+7 (8452) 29-67-28</a></button></div>
+        <div class= "log5">
+            <img class="img3" src="../../static/users/images/image 3.png" alt="Картинка WhatsApp">
+        </div>
+        <div class= "log6">
+            <img class="img4" src="../../static/users/images/image 1.png" alt="Картинка Telegram">
+        </div>
+        <div class= "log7">
+            <img class="img5" src="../../static/users/images/image 2.png" alt="Картинка whatsApp">
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+
+

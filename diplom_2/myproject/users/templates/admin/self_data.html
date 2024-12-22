@@ -1,0 +1,8 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h1>Данные администратора</h1>
+  <p><strong>Имя:</strong> {{ admin_data.first_name }}</p>
+  <p><strong>Фамилия:</strong> {{ admin_data.last_name }}</p>
+  <p><strong>Электронная почта:</strong> {{ admin_data.email }}</p>
+  <p><strong>Роль:</strong> {{ admin_data.role }}</p>
+{% endblock %}

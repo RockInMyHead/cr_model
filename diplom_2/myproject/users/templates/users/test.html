@@ -1,0 +1,19 @@
+{% if user.is_authenticated %}
+    <div>
+        <h3>Информация о пользователе</h3>
+        <p><strong>Роль:</strong> {{ user.role }}</p>
+        <p><strong>Имя:</strong> {{ user.first_name }}</p>
+        <p><strong>Фамилия:</strong> {{ user.second_name }}</p>
+        <p><strong>Отчество:</strong> {{ user.patronomyc }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Телефон:</strong> {{ user.phone }}</p>
+        <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+    </div>
+{% else %}
+    <p>Пожалуйста, войдите в систему.</p>
+{% endif %}
+
+<form method="post" action="{% url 'users:logout' %}">
+    {% csrf_token %}
+    <button class="butt3" type="submit">Выход</button>
+</form>

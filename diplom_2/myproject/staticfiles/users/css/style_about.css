@@ -1,0 +1,463 @@
+@font-face {
+    src:url(../Fonts/Lobster-Regular.ttf);
+    font-family:Lobster;
+   }
+   @font-face {
+    src:url(../Fonts/Inter-VariableFont_slnt,wght.ttf);
+    font-family:Inter;
+   }
+   @font-face {
+    src:url(../Fonts/Jost-VariableFont_wght.ttf);
+    font-family:Jost;
+   }
+   body { margin:0;height:2300px;}
+   .header
+   {
+     position: absolute;
+     width: 1835px;
+     height: 114px;
+     left: 0px;
+     top: 0px;
+     background: #006C7B;
+     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+     border-radius: 0px 0px 40px 0px;
+   }
+   .IMGLOGO
+   {
+     position: absolute;
+     width: 638px;
+     height: 114px;
+     left: 0px;
+     top: 0px;
+   }
+   .logo
+   {
+     position: absolute;
+     width: 638px;
+     height: 106px;
+     left: 0px;
+     top: -6px;
+     background: #006C7B;
+   }
+   .log3
+   {
+     position: absolute;
+     width: 623px;
+     height: 114px;
+     top: 6px;
+   }
+   .butt1
+   {
+     position: absolute;
+     width: 259px;
+     height: 67px;
+     left: 648px;
+     top: 22px;
+     background: #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt1:hover
+   {
+       background: #7eaeb5;
+   }
+   .a1
+   {
+   
+position: absolute;
+   
+width: 120px;
+   
+height: 44px;
+   
+left: 85px;
+   
+top: 12px;
+   
+text-decoration: none;
+   
+font-family: 'Inter';
+   
+font-style: normal;
+   
+font-weight: 380;
+   
+font-size: 36px;
+   
+line-height: 44px;
+   /* identical to box height */
+   
+display: flex;
+   
+align-items: center;
+   
+text-align: center;
+   
+color: #323232;
+   }
+   .a1:hover
+   {
+       color:white;
+   }
+   .butt2
+   {
+     position: absolute;
+     width: 239px;
+     height: 67px;
+     left: 940px;
+     top: 22px;
+     background:  #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt2:hover
+   {
+       background: #7eaeb5;
+   }
+   .a2
+   {
+     position: absolute;
+     width: 112px;
+     height: 44px;
+     left: 65px;
+     top: 12px;
+     text-decoration: none;
+     font-family: 'Inter';
+     font-style: normal;
+     font-weight: 380;
+     font-size: 36px;
+     line-height: 44px;
+     display: flex;
+     align-items: center;
+     text-align: center;
+     color: #323232;
+   }
+   .a2:hover
+   {
+       color:white;
+   }
+   .butt3
+   {
+     position: absolute;
+     width: 269px;
+     height: 67px;
+     left: 1232px;
+     top: 22px;
+     background: #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt3:hover
+   {
+       background: #7eaeb5;
+   }
+   .a3
+   {
+    position: absolute;
+    width: 291px;
+    height: 44px;
+    left: -11px;
+    top: 12px;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 44px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    text-decoration:none;
+    color: #323232;
+    justify-content: center;
+   }
+   .a3:hover
+   {
+       color:white;
+   }
+   .butt5
+   {
+     position: absolute;
+     width: 239px;
+     height: 67px;
+     left: 1530px;
+     top: 22px;
+     background: #5CB4C0;
+     border-radius: 20px 0px;
+   }
+   .butt5:hover
+   {
+       background: #7eaeb5;
+   }
+   .a5
+   {
+    position: absolute;
+    width: 291px;
+    height: 44px;
+    left: -20px;
+    top: 12px;
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 44px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    text-decoration:none;
+    color: #323232;
+    justify-content: center;
+   }
+   .a5:hover
+   {
+       color:white;
+   }
+
+.footer
+{
+  position: absolute;
+  width: 1835px;
+  height: 114px;
+  left: 0px;
+  top: 2400px;
+
+  background: #07545F;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 0px 0px 40px 0px;
+}
+.log4
+{
+  position: absolute;
+  width: 750px;
+  height: 114px;
+  left: 0px;
+  top: 0px;
+
+  background: #006C7B;
+  border-radius: 40px 0px 0px 0px;
+}
+.log4P
+{
+  position: absolute;
+  width: 700px;
+  height: 79px;
+  left: 34px;
+  top: 25px;
+
+  font-family: 'Lobster';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 40px;
+
+  color: #ffffff;
+}
+.butt4
+{
+  position: absolute;
+  width: 350px;
+  height: 69px;
+  left: 860px;
+  top: 23px; 
+  background: #006C7B;
+  border-radius: 20px 0px;
+  border: none; /* Убираем границу */
+  outline: none; /* Убираем обводку при фокусе */
+  pointer-events: none; /* Делаем кнопку некликабельной */
+  cursor: default; /* Меняем курсор на стандартный */
+}
+.log5
+{
+  position: absolute;
+  width:200px;
+  height: 114px;
+  left: 1290px;
+  top: 0px;
+
+  background: #006C7B;
+}
+.log6
+{
+  position: absolute;
+  width: 200px;
+  height: 114px;
+  left: 1510px;
+  top: 0px;
+
+  background: #07545F;
+}
+.log7
+{
+  position: absolute;
+  width: 180px;
+  height: 114px;
+  left: 1655px;
+  top: 0px;
+
+  background: #006C7B;
+}
+.img3
+{
+  position: absolute;
+  width: 77px;
+  height: 77px;
+  left: 61px;
+  top: 18px;
+
+  filter: drop-shadow(0px 0px 4px rgba(0, 0, 0, 0.25));
+}
+.img4
+{
+  position: absolute;
+  width: 77px;
+  height: 77px;
+  left: 30px;
+  top: 17px;
+
+}
+.img5
+{
+  position: absolute;
+  width: 77px;
+  height: 77px;
+  left: 61px;
+  top: 18px;
+
+}
+.a6
+{
+  position: absolute;
+  width: 352px;
+  height: 44px;
+  left: 30px;
+  top: 12px;
+
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 44px;
+  /* identical to box height */
+
+  display: flex;
+  align-items: center;
+  text-align: center;
+
+  color: #ffffff;
+  text-decoration: none; 
+}
+.inf {
+    width: 1685px; 
+    height: 1250px;
+    background-color: rgba(0, 108, 123, 1.00); 
+    border-top-right-radius: 40px;
+    border-bottom-left-radius: 40px;
+    padding: 0;
+    position: absolute; /* Используем абсолютное позиционирование */
+    top: 180%; /* Сдвигаем вниз на 50% высоты окна */
+    left: 50%; /* Сдвигаем вправо на 50% ширины окна */
+    transform: translate(-50%, -50%); /* Центрируем элемент */
+}
+.img {
+    width: 1458px; 
+    height: 717px;
+    display: block; /* Делаем изображение блочным элементом */
+    margin-left: auto; /* Автоматические отступы слева */
+    margin-right: auto; /* Автоматические отступы справа */
+    margin-top: 180px;
+}
+.dop_inf_1
+{
+    width: 609px;
+    height: 328.00px;
+    background-color: rgba(92, 180, 192, 1.00);
+    border-top-left-radius: 20px; 
+    border-bottom-right-radius: 20px;
+    padding: 0px 0px 0px 0px;
+    margin: 20px;
+}
+.text_1
+{
+    height: 44.00px;
+    width: 609px;
+    color: rgba(255, 255, 255, 1.00);
+    font-family: Inter;
+    font-size: 36px;
+    position: absolute;
+    top: 12px;
+    left: 196px;
+    text-align: center;
+    margin-left: -180px;
+    margin-top: 20px;
+}
+.dop_inf_2
+{
+    width: 609px;
+    height: 328.00px;
+    background-color: rgba(92, 180, 192, 1.00);
+    border-top-left-radius: 20px; 
+    border-bottom-right-radius: 20px;
+    padding: 0px 0px 0px 0px;
+    margin-top: 80px;
+    margin-left: 20px;
+}
+.text_2
+{
+    height: 44.00px;
+    width: 589px;
+    color: rgba(255, 255, 255, 1.00);
+    font-family: Inter;
+    font-size: 36px;
+    position: absolute;
+    top: 412px;
+    left: 206px;
+    text-align: center;
+    margin-left: -180px;
+    margin-top: 20px;
+}
+.dop_inf_3
+{
+    width: 609px;
+    height: 328.00px;
+    background-color: rgba(92, 180, 192, 1.00);
+    border-top-left-radius: 20px; 
+    border-bottom-right-radius: 20px;
+    padding: 0px 0px 0px 0px;
+    margin-top: 80px;
+    margin-left: 20px;
+}
+.text_3
+{
+    height: 44.00px;
+    width: 589px;
+    color: rgba(255, 255, 255, 1.00);
+    font-family: Inter;
+    font-size: 36px;
+    position: absolute;
+    top: 822px;
+    left: 206px;
+    text-align: center;
+    margin-left: -180px;
+    margin-top: 20px;
+}
+.main_inf
+{
+    width: 984px;
+    height: 920.00px;
+    background-color: rgba(255, 255, 255, 1.00);
+    border-top-right-radius: 40px;
+    border-bottom-left-radius: 40px;
+    padding: 0px 0px 0px 0px;
+    margin-top: -1000px;
+    margin-left: 670px;
+}
+.main_text
+{
+    width: 981px;
+    height: 1189.00px; 
+    color: rgba(0, 108, 123, 1.00);
+    font-family: Inter; 
+    font-weight: 400; 
+    font-size: 38px;
+    position: absolute; 
+    top: 167px; 
+    left: 671px; 
+    padding: 10px 10px 10px 10px;
+    text-align: center;
+}

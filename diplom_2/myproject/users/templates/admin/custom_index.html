@@ -1,0 +1,9 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+    <h1>Добро пожаловать, {{ admin_user.username }}!</h1>
+    <p>Email: {{ admin_user.email }}</p>
+    <p>Дата последнего входа: {{ admin_user.last_login }}</p>
+    <hr>
+    {{ block.super }}
+{% endblock %}
