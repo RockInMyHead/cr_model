@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.template.response import TemplateResponse
 from django.urls import path
-from .models import User, Role, Services
+from .models import User, Role, Services, Transactions, Reports
 from .forms import RegistrationForm
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -54,3 +54,5 @@ class UserAdmin(admin.ModelAdmin):
 admin_site.register(User, UserAdmin)
 admin_site.register(Role)
 admin_site.register(Services)
+admin_site.register(Transactions)
+admin_site.register(Reports)

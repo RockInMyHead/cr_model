@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Transactions, User
+from .models import Transactions, User, Reports
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 
@@ -45,3 +45,13 @@ class Predict(forms.Form):
     issuercountrycode = forms.CharField(label='Issuer Country Code', max_length=100)
 
    
+
+class ReportsForm(forms.ModelForm):
+    class Meta:
+        model = Reports
+        fields = ['name', 'date', 'fraud_status']
+        # Поле fraud_status по умолчанию будет отображаться выпадающим списком.
+        # Чтобы сделать именно радиокнопки, добавим настройку виджета:
+        widgets = {
+            'fraud_status': forms.RadioSelect
+        }

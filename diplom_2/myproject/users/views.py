@@ -7,8 +7,11 @@ from tensorflow.keras.models import load_model
 import os
 import numpy as np
 import pandas as pd
-from .forms import RegistrationForm, Predict
-from .models import Transactions, Services
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .forms import RegistrationForm, Predict, ReportsForm
+from .models import Transactions, Services, Reports
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils.dateparse import parse_date
@@ -33,8 +36,71 @@ def login(request):
 def index(request):
     return render(request, 'users/index.html')
 
+@login_required
 def test(request):
-    return render(request, 'users/test.html')
+    # 1. Обработка POST-запроса (добавление отчёта), как у вас было
+    if request.method == 'POST' and 'add_report' in request.POST:
+        form = ReportsForm(request.POST)
+        if form.is_valid():
+            # Создаём объект Reports, но пока не сохраняем в БД
+            report = form.save(commit=False)
+            # Привязываем к текущему пользователю
+            report.user = request.user
+            report.save()
+            messages.success(request, "Отчёт успешно добавлен!")
+            return redirect('users:test')  # или на другую страницу
+        else:
+            messages.error(request, "Произошла ошибка при сохранении отчёта.")
+    else:
+        form = ReportsForm()
+
+    # -------------------------------------------------------
+    # 2. Фильтрация отчётов
+    # -------------------------------------------------------
+    user_reports = Reports.objects.filter(user=request.user)
+
+    # Параметры из GET-запроса
+    report_name = request.GET.get('report_name', '').strip()
+    report_date = request.GET.get('report_date', '').strip()
+
+    # Фильтр по имени отчёта
+    if report_name:
+        user_reports = user_reports.filter(name__icontains=report_name)
+
+    # Фильтр по точной дате отчёта (формат YYYY-MM-DD)
+    if report_date:
+        user_reports = user_reports.filter(date=report_date)
+
+    # -------------------------------------------------------
+    # 3. Фильтрация транзакций
+    # -------------------------------------------------------
+    # Здесь мы получаем все транзакции (поскольку в модели нет поля user).
+    # Если появится поле user (ForeignKey), то можно будет фильтровать только "свои" транзакции.
+    user_transactions = Transactions.objects.all()
+
+    # Параметры для фильтрации транзакций (например, по bin и по дню/месяцу)
+    transaction_bin = request.GET.get('transaction_bin', '').strip()
+    transaction_day = request.GET.get('transaction_day', '').strip()
+    transaction_month = request.GET.get('transaction_month', '').strip()
+
+    if transaction_bin:
+        # Фильтрация по bin (частичное совпадение)
+        user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
+    
+    # Если заданы Day и Month, фильтруем точным совпадением строк
+    if transaction_day:
+        user_transactions = user_transactions.filter(Day=transaction_day)
+    if transaction_month:
+        user_transactions = user_transactions.filter(Month=transaction_month)
+
+    context = {
+        'form': form,
+        'user_reports': user_reports,
+        'user_transactions': user_transactions,
+    }
+
+    return render(request, 'users/test.html', context)
+
 
 def about(request):
     return render(request, 'users/about.html')
@@ -185,6 +251,24 @@ def predict_transactions(request):
         form = Predict(request.POST)
         if form.is_valid():
             try:
+                # Сначала сохраняем введённые пользователем данные в таблицу Transactions
+                # Обратите внимание, что в модели Transactions поля типа CharField, 
+                # поэтому нужно привести их к строкам.
+                transaction = Transactions.objects.create(
+                    bin=str(form.cleaned_data.get('bin', '0')),
+                    amount=str(form.cleaned_data.get('amount', '0')),
+                    shoppercountrycode=form.cleaned_data.get('shoppercountrycode', ''),
+                    cardverificationcodesupplied=form.cleaned_data.get('cardverificationcodesupplied', 'yes'),
+                    cvcresponsecode=str(form.cleaned_data.get('cvcresponsecode', '0')),
+                    txvariantcode=form.cleaned_data.get('txvariantcode', ''),
+                    Day=str(form.cleaned_data.get('Day', '0')),
+                    Month=str(form.cleaned_data.get('Month', '0')),
+                    time_in_seconds=str(form.cleaned_data.get('time_in_seconds', '0')),
+                    issuercountrycode=form.cleaned_data.get('issuercountrycode', '')
+                )
+
+                # Для прогноза модели нам нужны числовые типы, поэтому собираем 
+                # аналогичный словарь (но уже с преобразованием к int/float для prepare_input).
                 data = {
                     'bin': int(form.cleaned_data.get('bin', 0)),
                     'amount': float(form.cleaned_data.get('amount', 0)),
@@ -192,19 +276,19 @@ def predict_transactions(request):
                     'cardverificationcodesupplied': form.cleaned_data.get('cardverificationcodesupplied', 'yes'),
                     'cvcresponsecode': int(form.cleaned_data.get('cvcresponsecode', 0)),
                     'txvariantcode': form.cleaned_data.get('txvariantcode', ''),
-                    'day': int(form.cleaned_data.get('day', 0)),
-                    'month': int(form.cleaned_data.get('month', 0)),
+                    'day': int(form.cleaned_data.get('Day', 0)),
+                    'month': int(form.cleaned_data.get('Month', 0)),
                     'time_in_seconds': float(form.cleaned_data.get('time_in_seconds', 0)),
                     'issuercountrycode': form.cleaned_data.get('issuercountrycode', '')
                 }
 
-                # Debugging: Print the raw input data
+                # Debug: распечатать сырые данные
                 print("Raw Input Data from Form:")
                 print(data)
 
                 input_data = prepare_input(data)
 
-                # Debugging: Print the prepared input data before prediction
+                # Debug: распечатать подготовленные данные
                 print("Input Data Passed to Model:")
                 print(input_data)
                 print(f"Input Data Shape: {input_data.shape}")
@@ -212,22 +296,22 @@ def predict_transactions(request):
                 prediction = model.predict(input_data)
                 predicted_class = prediction[0][0]
 
-                # Debugging: Print the prediction result
+                # Debug: вывод результата предсказания
                 print(f"Model Prediction: {predicted_class}")
 
                 return JsonResponse({'prediction': float(predicted_class)})
+
             except Exception as e:
-                # Debugging: Print the exception
                 print(f"Prediction Error: {e}")
                 return JsonResponse({'error': str(e)}, status=400)
         else:
-            # Debugging: Print form errors
             print("Form is invalid:")
             print(form.errors)
             return JsonResponse({'error': 'Invalid form data'}, status=400)
     else:
         form = Predict()
     return render(request, 'users/predict.html', {'form': form})
+
 
 def services(request):
     services = Services.objects.all()

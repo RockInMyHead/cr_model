@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 import re
 from django.utils.translation import gettext_lazy as _
+from django.db import models
+from django.contrib.auth import get_user_model
 
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -61,3 +63,31 @@ class Services (models.Model):
 
     def str(self):
             return self.name
+    
+
+
+User = get_user_model()
+
+class Reports(models.Model):
+    FRAUD_STATUS_CHOICES = [
+        ('not_fraud', 'Транзакция не мошенническая'),
+        ('fraud', 'Транзакция мошенническая'),
+    ]
+    
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='reports',
+        verbose_name='Пользователь'
+    )
+    name = models.CharField(max_length=255, verbose_name='Название отчёта')
+    date = models.DateField(verbose_name='Дата отчёта')
+    fraud_status = models.CharField(
+        max_length=10, 
+        choices=FRAUD_STATUS_CHOICES, 
+        default='not_fraud', 
+        verbose_name='Статус транзакции'
+    )
+
+    def __str__(self):
+        return self.name
