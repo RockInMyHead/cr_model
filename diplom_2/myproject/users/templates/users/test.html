@@ -114,6 +114,11 @@
 
     <hr>
 
+    <form method="post" action="{% url 'users:generated' %}">
+        {% csrf_token %}
+        <button class="butt3" type="submit">Сгенерировать 100 транзакций</button>
+    </form>
+
     <form method="post" action="{% url 'users:logout' %}">
         {% csrf_token %}
         <button class="butt3" type="submit">Выход</button>

@@ -4,11 +4,9 @@
     <title>Prediction</title>
 </head>
 <body>
-    <h1>Сделать предсказание</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Предсказать</button>
-    </form>
+    {%for j in predict%}
+    {{j}}
+    <li>
+    {%endfor%}
 </body>
 </html>
