@@ -104,6 +104,7 @@
                     <td>{{ tr.Month }}</td>
                     <td>{{ tr.time_in_seconds }}</td>
                     <td>{{ tr.issuercountrycode }}</td>
+                    <td>{{ tr.result}}</td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -118,7 +119,7 @@
         {% csrf_token %}
         <button class="butt3" type="submit">Сгенерировать 100 транзакций</button>
     </form>
-
+    <a class="a3" href="{% url 'users:test' %}">Обновить</a>
     <form method="post" action="{% url 'users:logout' %}">
         {% csrf_token %}
         <button class="butt3" type="submit">Выход</button>
