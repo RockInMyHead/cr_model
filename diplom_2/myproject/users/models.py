@@ -52,6 +52,7 @@ class Transactions(models.Model):
     Month = models.CharField(max_length=100, verbose_name='Month')
     time_in_seconds = models.CharField(max_length=100, verbose_name='time_in_seconds')
     issuercountrycode = models.CharField(max_length=100, verbose_name='issuercountrycode')
+    result = models.CharField(max_length=100, verbose_name='result')
 
 
 class Services (models.Model):
