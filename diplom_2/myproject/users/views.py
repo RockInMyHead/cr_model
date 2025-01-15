@@ -355,82 +355,200 @@ def services(request):
 
 
 def genarate():
-    #import os
+    import numpy as np
+    import pandas as pd
+    from tensorflow.keras.models import load_model
+    from .models import Transactions
 
-    #BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    #model_path = os.path.join(BASE_DIR, 'fraud_detection_model.h5')
-    #model = load_model(model_path)
-    model = load_model(r"D:\diplom_django\cr_model-main\diplom_2\myproject\users\fraud_detection_model.h5")
+    # Загрузка модели для предсказаний
+    model_path = r"D:\diplom_django\cr_model-main\diplom_2\myproject\users\fraud_detection_model.h5"
+    model = load_model(model_path)
+    expected_features = model.input_shape[1]  # ожидаемое число признаков (например, 11)
+    print(f"Модель ожидает {expected_features} признаков.")
 
-    # Определение количества признаков, ожидаемых моделью
-    input_shape = model.input_shape[1]  # Количество ожидаемых признаков
-    print(input_shape)
-
-    # Генерация случайных данных
-    def generate_random_data(num_samples, num_features, categorical_features=None, num_categories=5):
-        categorical_features = categorical_features or []
-        data = {}
-
-        for i in range(num_features):
-            if i in categorical_features:
-                # Генерация случайных категорий
-                data[f'feature_{i}'] = np.random.randint(0, num_categories, num_samples)
-            else:
-                # Генерация случайных чисел в диапазоне [0, 1]
-                data[f'feature_{i}'] = np.random.random(num_samples)
-
-        return pd.DataFrame(data)
-
-    # Безопасное преобразование категориальных данных
-    def safe_transform(encoder, column):
-        """
-        Обрабатывает новые метки, которые не были в обучающем наборе.
-        """
-        known_labels = set(encoder.classes_)
-        new_labels = set(column.unique()) - known_labels
-
-        if new_labels:
-            print(f"Warning: New labels encountered: {new_labels}")
-            # Добавляем новые метки в LabelEncoder
-            encoder.classes_ = np.append(encoder.classes_, list(new_labels))
-        return encoder.transform(column)
-
-    # Настройки генерации данных
     num_samples = 150
-    num_features = input_shape  # Количество признаков, соответствующих модели
-    categorical_features = [0, 10]  # Индексы категориальных признаков (пример)
 
-    # Генерация данных
-    random_data = generate_random_data(num_samples, num_features, categorical_features)
+    # Генерация случайных значений для каждого параметра (диапазон от 10 до 10000)
+    random_data = pd.DataFrame({
+        'bin': np.random.randint(10, 10000, num_samples),
+        'shoppercountrycode': np.random.randint(10, 10000, num_samples),
+        'txvariantcode': np.random.randint(10, 10000, num_samples),
+        'issuercountrycode': np.random.randint(10, 10000, num_samples),
+        'amount': np.random.randint(10, 10000, num_samples),
+        'Day': np.random.randint(10, 10000, num_samples),
+        'Month': np.random.randint(10, 10000, num_samples),
+        'time_in_seconds': np.random.randint(10, 10000, num_samples)
+    })
+    # Дополнительные поля
+    random_data['cardverificationcodesupplied'] = np.random.randint(10, 10000, num_samples)
+    random_data['cvcresponsecode'] = np.random.randint(10, 10000, num_samples)
 
-    # Пример использования LabelEncoder для категориальных признаков
-    encoders = {}
-    for col in categorical_features:
-        encoder = LabelEncoder()
-        encoder.fit(random_data[f'feature_{col}'])
-        random_data[f'feature_{col}'] = safe_transform(encoder, random_data[f'feature_{col}'])
-        encoders[col] = encoder
+    # Дополнительный признак: длина строки поля 'bin'
+    random_data['bin_length'] = random_data['bin'].astype(str).apply(len)
 
-    # Нормализация данных 
-    random_data = (random_data - random_data.mean()) / random_data.std()
+    # Формирование входного набора для модели.
+    # Порядок признаков: [bin, amount, shoppercountrycode, cardverificationcodesupplied,
+    #  cvcresponsecode, txvariantcode, Day, Month, time_in_seconds, issuercountrycode, bin_length]
+    feature_cols = [
+        'bin',
+        'amount',
+        'shoppercountrycode',
+        'cardverificationcodesupplied',
+        'cvcresponsecode',
+        'txvariantcode',
+        'Day',
+        'Month',
+        'time_in_seconds',
+        'issuercountrycode',
+        'bin_length'
+    ]
+    # Данные для сохранения в БД останутся без изменений
+    model_input = random_data[feature_cols].copy()
+    # Не выполняется нормализация — данные передаются модели "как есть"
+    random_data_np = model_input.to_numpy()
+    
+    print("Входные данные для модели (без нормализации):")
+    print(model_input.head())
+    print("Shape:", random_data_np.shape)
 
-    # Преобразование данных в формат numpy
-    random_data_np = random_data.to_numpy()
+    # Создаем модифицированную копию входных данных для предсказания,
+    # в которой для определенных столбцов значения умножаются на случайное число
+    modified_input = model_input.copy()
+    features_to_multiply = [
+        'shoppercountrycode',
+        'cardverificationcodesupplied',
+        'cvcresponsecode',
+        'txvariantcode',
+        'Day',
+        'Month',
+        'time_in_seconds',
+        'issuercountrycode'
+    ]
+    for col in features_to_multiply:
+        multiplier = np.random.uniform(1.0, 10.0)
+        modified_input[col] = modified_input[col] * multiplier
+        print(f"Multiplier for {col}: {multiplier}")
 
-    # Предсказание модели
-    predictions = model.predict(random_data_np)
+    modified_input_np = modified_input.to_numpy()
 
-    # Преобразование предсказаний в проценты
-    predictions_percent = (predictions * 100).round(2)
+    # Выполняем предсказание модели по модифицированным данным
+    predictions = model.predict(modified_input_np)
 
-    # Вывод только предсказаний в процентах
-    print(predictions_percent)
+    # Если модель возвращает вектор (например, softmax), выбираем индекс с максимальным значением
+    if predictions.ndim > 1 and predictions.shape[1] > 1:
+        predicted_values = np.argmax(predictions, axis=1)
+    else:
+        predicted_values = predictions.flatten()
 
-    # Сохранение предсказаний в CSV
-    pd.DataFrame(predictions_percent, columns=['Prediction (%)']).to_csv('predictions.csv', index=False)
-    return predictions_percent, random_data
+    # Случайным образом выбираем некоторое количество предсказаний и заменяем их на случайное число от 1 до 99
+    total = len(predicted_values)
+    count_to_replace = np.random.randint(1, total + 1)
+    indices_to_replace = np.random.choice(total, size=count_to_replace, replace=False)
+    for idx in indices_to_replace:
+        predicted_values[idx] = np.random.randint(1, 100)
+
+    # Функция маппинга числового предсказания в строковое
+    def map_prediction(val):
+        if val == 0:
+            return "Не мошенническая"
+        elif val == 1:
+            return "Мошенническая"
+        else:
+            return "Не известно"
+
+    # Записываем числовое предсказание и строковое значение в DataFrame
+    random_data['Prediction'] = predicted_values
+    random_data['Prediction_result'] = random_data['Prediction'].apply(map_prediction)
+
+    print("Сгенерированные данные с предсказанием:")
+    print(random_data)
+
+    # Сохранение данных в CSV (если требуется)
+    random_data.to_csv('predictions.csv', index=False)
+
+    # Сохранение каждой транзакции в базу данных (исходные данные не изменяются)
+    for idx, row in random_data.iterrows():
+        Transactions.objects.create(
+            bin=str(row['bin']),
+            amount=str(row['amount']),
+            shoppercountrycode=str(row['shoppercountrycode']),
+            cardverificationcodesupplied=str(row['cardverificationcodesupplied']),
+            cvcresponsecode=str(row['cvcresponsecode']),
+            txvariantcode=str(row['txvariantcode']),
+            Day=str(row['Day']),
+            Month=str(row['Month']),
+            time_in_seconds=str(row['time_in_seconds']),
+            issuercountrycode=str(row['issuercountrycode']),
+            result=row['Prediction_result']
+        )
+
+    return predicted_values, random_data
+
+
+
+
 
 
 def generated(request):
     predict, data  = genarate()
-    return render(request, 'users/predict.html', {'predict': predict, 'data': data})
+    if request.method == 'POST' and 'add_report' in request.POST:
+        form = ReportsForm(request.POST)
+        if form.is_valid():
+            # Создаём объект Reports, но пока не сохраняем в БД
+            report = form.save(commit=False)
+            # Привязываем к текущему пользователю
+            report.user = request.user
+            report.save()
+            messages.success(request, "Отчёт успешно добавлен!")
+            return redirect('users:test')  # или на другую страницу
+        else:
+            messages.error(request, "Произошла ошибка при сохранении отчёта.")
+    else:
+        form = ReportsForm()
+
+    # -------------------------------------------------------
+    # 2. Фильтрация отчётов
+    # -------------------------------------------------------
+    user_reports = Reports.objects.filter(user=request.user)
+
+    # Параметры из GET-запроса
+    report_name = request.GET.get('report_name', '').strip()
+    report_date = request.GET.get('report_date', '').strip()
+
+    # Фильтр по имени отчёта
+    if report_name:
+        user_reports = user_reports.filter(name__icontains=report_name)
+
+    # Фильтр по точной дате отчёта (формат YYYY-MM-DD)
+    if report_date:
+        user_reports = user_reports.filter(date=report_date)
+
+    # -------------------------------------------------------
+    # 3. Фильтрация транзакций
+    # -------------------------------------------------------
+    # Здесь мы получаем все транзакции (поскольку в модели нет поля user).
+    # Если появится поле user (ForeignKey), то можно будет фильтровать только "свои" транзакции.
+    user_transactions = Transactions.objects.all()
+
+    # Параметры для фильтрации транзакций (например, по bin и по дню/месяцу)
+    transaction_bin = request.GET.get('transaction_bin', '').strip()
+    transaction_day = request.GET.get('transaction_day', '').strip()
+    transaction_month = request.GET.get('transaction_month', '').strip()
+
+    if transaction_bin:
+        # Фильтрация по bin (частичное совпадение)
+        user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
+    
+    # Если заданы Day и Month, фильтруем точным совпадением строк
+    if transaction_day:
+        user_transactions = user_transactions.filter(Day=transaction_day)
+    if transaction_month:
+        user_transactions = user_transactions.filter(Month=transaction_month)
+
+    context = {
+        'form': form,
+        'user_reports': user_reports,
+        'user_transactions': user_transactions,
+    }
+
+    return render(request, 'users/test.html', context)
