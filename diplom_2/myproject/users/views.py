@@ -40,65 +40,52 @@ def index(request):
 
 @login_required
 def test(request):
-    # 1. Обработка POST-запроса (добавление отчёта), как у вас было
+    # 1. Обработка POST-запроса для добавления отчёта
     if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
-            # Создаём объект Reports, но пока не сохраняем в БД
             report = form.save(commit=False)
-            # Привязываем к текущему пользователю
             report.user = request.user
             report.save()
             messages.success(request, "Отчёт успешно добавлен!")
-            return redirect('users:test')  # или на другую страницу
+            return redirect('users:test')
         else:
             messages.error(request, "Произошла ошибка при сохранении отчёта.")
     else:
         form = ReportsForm()
 
-    # -------------------------------------------------------
     # 2. Фильтрация отчётов
-    # -------------------------------------------------------
     user_reports = Reports.objects.filter(user=request.user)
-
-    # Параметры из GET-запроса
     report_name = request.GET.get('report_name', '').strip()
     report_date = request.GET.get('report_date', '').strip()
-
-    # Фильтр по имени отчёта
     if report_name:
         user_reports = user_reports.filter(name__icontains=report_name)
-
-    # Фильтр по точной дате отчёта (формат YYYY-MM-DD)
     if report_date:
         user_reports = user_reports.filter(date=report_date)
 
-    # -------------------------------------------------------
     # 3. Фильтрация транзакций
-    # -------------------------------------------------------
-    # Здесь мы получаем все транзакции (поскольку в модели нет поля user).
-    # Если появится поле user (ForeignKey), то можно будет фильтровать только "свои" транзакции.
     user_transactions = Transactions.objects.all()
-
-    # Параметры для фильтрации транзакций (например, по bin и по дню/месяцу)
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
     transaction_month = request.GET.get('transaction_month', '').strip()
-
     if transaction_bin:
-        # Фильтрация по bin (частичное совпадение)
         user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
-    
-    # Если заданы Day и Month, фильтруем точным совпадением строк
     if transaction_day:
         user_transactions = user_transactions.filter(Day=transaction_day)
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
+    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
+    # то устанавливаем флаг show_elements в True
+    show_elements = False
+    if request.user.role:
+        show_elements = (request.user.role.name == "one")
+
     context = {
         'form': form,
         'user_reports': user_reports,
         'user_transactions': user_transactions,
+        'show_elements': show_elements,  # передаем флаг в шаблон
     }
 
     return render(request, 'users/test.html', context)
@@ -366,7 +353,7 @@ def genarate():
     expected_features = model.input_shape[1]  # ожидаемое число признаков (например, 11)
     print(f"Модель ожидает {expected_features} признаков.")
 
-    num_samples = 150
+    num_samples = 3
 
     # Генерация случайных значений для каждого параметра (диапазон от 10 до 10000)
     random_data = pd.DataFrame({
@@ -552,3 +539,157 @@ def generated(request):
     }
 
     return render(request, 'users/test.html', context)
+
+
+def tex(request):
+        # 1. Обработка POST-запроса для добавления отчёта
+    if request.method == 'POST' and 'add_report' in request.POST:
+        form = ReportsForm(request.POST)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.user = request.user
+            report.save()
+            messages.success(request, "Отчёт успешно добавлен!")
+            return redirect('users:test')
+        else:
+            messages.error(request, "Произошла ошибка при сохранении отчёта.")
+    else:
+        form = ReportsForm()
+
+    # 2. Фильтрация отчётов
+    user_reports = Reports.objects.filter(user=request.user)
+    report_name = request.GET.get('report_name', '').strip()
+    report_date = request.GET.get('report_date', '').strip()
+    if report_name:
+        user_reports = user_reports.filter(name__icontains=report_name)
+    if report_date:
+        user_reports = user_reports.filter(date=report_date)
+
+    # 3. Фильтрация транзакций
+    user_transactions = Transactions.objects.all()
+    transaction_bin = request.GET.get('transaction_bin', '').strip()
+    transaction_day = request.GET.get('transaction_day', '').strip()
+    transaction_month = request.GET.get('transaction_month', '').strip()
+    if transaction_bin:
+        user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
+    if transaction_day:
+        user_transactions = user_transactions.filter(Day=transaction_day)
+    if transaction_month:
+        user_transactions = user_transactions.filter(Month=transaction_month)
+
+    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
+    # то устанавливаем флаг show_elements в True
+    show_elements = False
+    if request.user.role:
+        show_elements = (request.user.role.name == "one")
+
+    context = {
+        'form': form,
+        'user_reports': user_reports,
+        'user_transactions': user_transactions,
+        'show_elements': show_elements,  # передаем флаг в шаблон
+    }
+    return render(request, 'users/tex.html', context)
+
+
+def test_one(request):
+    # 1. Обработка POST-запроса для добавления отчёта
+    if request.method == 'GET' and 'add_report' in request.POST:
+        form = ReportsForm(request.POST)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.user = request.user
+            report.save()
+            messages.success(request, "Отчёт успешно добавлен!")
+            return redirect('users:test')
+        else:
+            messages.error(request, "Произошла ошибка при сохранении отчёта.")
+    else:
+        form = ReportsForm()
+
+    # 2. Фильтрация отчётов
+    user_reports = Reports.objects.filter(user=request.user)
+    report_name = request.GET.get('report_name', '').strip()
+    report_date = request.GET.get('report_date', '').strip()
+    if report_name:
+        user_reports = user_reports.filter(name__icontains=report_name)
+    if report_date:
+        user_reports = user_reports.filter(date=report_date)
+
+    # 3. Фильтрация транзакций
+    user_transactions = Transactions.objects.all()
+    transaction_bin = request.GET.get('transaction_bin', '').strip()
+    transaction_day = request.GET.get('transaction_day', '').strip()
+    transaction_month = request.GET.get('transaction_month', '').strip()
+    if transaction_bin:
+        user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
+    if transaction_day:
+        user_transactions = user_transactions.filter(Day=transaction_day)
+    if transaction_month:
+        user_transactions = user_transactions.filter(Month=transaction_month)
+
+    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
+    # то устанавливаем флаг show_elements в True
+    show_elements = False
+    if request.user.role:
+        show_elements = (request.user.role.name == "one")
+
+    context = {
+        'form': form,
+        'user_reports': user_reports,
+        'user_transactions': user_transactions,
+        'show_elements': show_elements,  # передаем флаг в шаблон
+    }
+
+    return render(request, 'users/text_one.html', context)
+
+
+def tex_one(request):
+        # 1. Обработка POST-запроса для добавления отчёта
+    if request.method == 'POST' and 'add_report' in request.POST:
+        form = ReportsForm(request.POST)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.user = request.user
+            report.save()
+            messages.success(request, "Отчёт успешно добавлен!")
+            return redirect('users:test')
+        else:
+            messages.error(request, "Произошла ошибка при сохранении отчёта.")
+    else:
+        form = ReportsForm()
+
+    # 2. Фильтрация отчётов
+    user_reports = Reports.objects.filter(user=request.user)
+    report_name = request.GET.get('report_name', '').strip()
+    report_date = request.GET.get('report_date', '').strip()
+    if report_name:
+        user_reports = user_reports.filter(name__icontains=report_name)
+    if report_date:
+        user_reports = user_reports.filter(date=report_date)
+
+    # 3. Фильтрация транзакций
+    user_transactions = Transactions.objects.all()
+    transaction_bin = request.GET.get('transaction_bin', '').strip()
+    transaction_day = request.GET.get('transaction_day', '').strip()
+    transaction_month = request.GET.get('transaction_month', '').strip()
+    if transaction_bin:
+        user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
+    if transaction_day:
+        user_transactions = user_transactions.filter(Day=transaction_day)
+    if transaction_month:
+        user_transactions = user_transactions.filter(Month=transaction_month)
+
+    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
+    # то устанавливаем флаг show_elements в True
+    show_elements = False
+    if request.user.role:
+        show_elements = (request.user.role.name == "one")
+
+    context = {
+        'form': form,
+        'user_reports': user_reports,
+        'user_transactions': user_transactions,
+        'show_elements': show_elements,  # передаем флаг в шаблон
+    }
+    return render(request, 'users/tex_one.html', context)

@@ -18,6 +18,9 @@ urlpatterns = [
     path('predict/', views.predict_transactions, name='predict'),
     path('services/', views.services, name='services'),
     path("generated/", views.generated, name='generated'),
+    path("tex/", views.tex, name='tex'),
+    path("test_one/", views.test_one, name='test_one'),
+    path("tex_one/", views.tex_one, name='tex_one')
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:  
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
