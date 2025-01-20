@@ -1,0 +1,58 @@
+<div>
+    <h3>Информация о пользователе</h3>
+    <p><strong>Имя:</strong> {{ user.first_name }}</p>
+    <p><strong>Фамилия:</strong> {{ user.second_name }}</p>
+    <p><strong>Отчество:</strong> {{ user.patronomyc }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Телефон:</strong> {{ user.phone }}</p>
+    <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+</div>
+   
+
+        </tbody>
+    </table>
+    {% if user.role and user.role.name == "one" %}
+    
+    <h3>История транзакций</h3>
+    <table border="1" cellpadding="8" style="border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>BIN</th>
+                <th>Amount</th>
+                <th>Shopper Country</th>
+                <th>CVC Supplied</th>
+                <th>CVC Response</th>
+                <th>txvariant</th>
+                <th>Day</th>
+                <th>Month</th>
+                <th>Time in seconds</th>
+                <th>Issuer Country</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for tr in user_transactions %}
+            <tr>
+                <td>{{ tr.bin }}</td>
+                <td>{{ tr.amount }}</td>
+                <td>{{ tr.shoppercountrycode }}</td>
+                <td>{{ tr.cardverificationcodesupplied }}</td>
+                <td>{{ tr.cvcresponsecode }}</td>
+                <td>{{ tr.txvariantcode }}</td>
+                <td>{{ tr.Day }}</td>
+                <td>{{ tr.Month }}</td>
+                <td>{{ tr.time_in_seconds }}</td>
+                <td>{{ tr.issuercountrycode }}</td>
+                <td>{{ tr.result }}</td>
+            </tr>
+        {% endfor %}
+
+    <button class="butt3" type="button">
+        <a class="a3" href="{% url 'users:tex' %}">Назад</a>
+    </button>
+    {% else %}
+    <button class="butt3" type="button">
+        <a class="a3" href="{% url 'users:test' %}">Назад</a>
+    </button>
+
+    {% endif %}

@@ -19,9 +19,16 @@
     <button class="butt2" type="button" name="Услуги"><a class="a2" href="{% url 'users:services' %}">Услуги</a></button>
     
     {% if user.is_authenticated %}
+    {% if user.role and user.role.name == "one" %}
+    <button class="butt3" type="button">
+        <a class="a3" href="{% url 'users:tex' %}">Личный кабинет</a>
+    </button>
+    {% else %}
     <button class="butt3" type="button">
         <a class="a3" href="{% url 'users:test' %}">Личный кабинет</a>
     </button>
+
+    {% endif %}
     {% else %}
         <button class="butt3" type="button">
             <a class="a3" href="{% url 'users:login' %}">Вход</a>

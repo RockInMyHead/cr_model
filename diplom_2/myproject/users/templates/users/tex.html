@@ -1,0 +1,87 @@
+{% if user.is_authenticated %}
+    <div>
+        <h3>Информация о пользователе</h3>
+        <p><strong>Имя:</strong> {{ user.first_name }}</p>
+        <p><strong>Фамилия:</strong> {{ user.second_name }}</p>
+        <p><strong>Отчество:</strong> {{ user.patronomyc }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Телефон:</strong> {{ user.phone }}</p>
+        <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+    </div>
+
+    <hr>
+
+    <h3>Добавить новый отчёт</h3>
+    <form method="post" action="">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <!-- Обратите внимание: чтобы отличать эту форму от формы фильтра,
+             можно добавить скрытое поле или name="add_report" у кнопки -->
+        <button type="submit" name="add_report" value="1">Сохранить отчёт</button>
+    </form>
+
+    <hr>
+
+    <!-- Форма для фильтрации отчётов и транзакций -->
+    <h3>Фильтрация отчётов и транзакций</h3>
+    <form method="get" action="">
+        <fieldset style="margin-bottom: 1rem; padding: 0.5rem;">
+            <legend>Фильтр по отчётам:</legend>
+            <label for="report_name">Название отчёта:</label>
+            <input type="text" name="report_name" id="report_name" value="{{ request.GET.report_name }}">
+            
+            <label for="report_date">Дата отчёта:</label>
+            <input type="date" name="report_date" id="report_date" value="{{ request.GET.report_date }}">
+        </fieldset>
+
+        <fieldset style="margin-bottom: 1rem; padding: 0.5rem;">
+            <legend>Фильтр по транзакциям:</legend>
+            <label for="transaction_bin">BIN:</label>
+            <input type="text" name="transaction_bin" id="transaction_bin" value="{{ request.GET.transaction_bin }}">
+
+            <label for="transaction_day">День (Day):</label>
+            <input type="text" name="transaction_day" id="transaction_day" value="{{ request.GET.transaction_day }}">
+
+            <label for="transaction_month">Месяц (Month):</label>
+            <input type="text" name="transaction_month" id="transaction_month" value="{{ request.GET.transaction_month }}">
+        </fieldset>
+
+        <button type="submit">Применить фильтр</button>
+    </form>
+
+    <hr>
+
+    <h3>Мои отчёты</h3>
+    {% if user_reports %}
+        <ul>
+            {% for report in user_reports %}
+            <li>
+                <strong>{{ report.name }}</strong> ({{ report.date }})
+                — {{ report.get_fraud_status_display }}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>У вас пока нет созданных отчётов (с учётом фильтра).</p>
+    {% endif %}
+
+    <hr>
+    {% if user.role and user.role.name == "one" %}
+    <form method="post" action="{% url 'users:tex_one' %}">
+        {% csrf_token %}
+        <button class="butt3" type="submit">История транзакций</button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'users:generated' %}">
+        {% csrf_token %}
+        <button class="butt3" type="submit">Сгенерировать 100 транзакций</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{% url 'users:logout' %}">
+        {% csrf_token %}
+        <button class="butt3" type="submit">Выход</button>
+    </form>
+
+{% else %}
+    <p>Пожалуйста, войдите в систему.</p>
+{% endif %}
