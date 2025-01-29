@@ -116,6 +116,11 @@
         {% csrf_token %}
         <button class="butt3" type="submit">Сгенерировать данные</button>
     </form>
+
+    <!-- Кнопка "Отчёты" -->
+    <form method="get" action="{% url 'users:reports_page' %}">
+        <button type="submit">Отчёты</button>
+    </form>
     {% endif %}
     <form method="post" action="{% url 'users:logout' %}">
         {% csrf_token %}

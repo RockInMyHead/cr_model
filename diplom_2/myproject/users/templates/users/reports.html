@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Отчёты (Транзакции)</title>
+</head>
+<body>
+
+<h1>Отчёты по транзакциям</h1>
+
+<!-- Форма фильтрации -->
+<form method="get" action="">
+    <fieldset>
+        <legend>Фильтр по транзакциям:</legend>
+        
+        <label for="bin_value">BIN содержит:</label>
+        <input type="text" name="bin_value" id="bin_value"
+               value="{{ request.GET.bin_value }}">
+
+        <label for="month_value">Месяц (Month):</label>
+        <input type="text" name="month_value" id="month_value"
+               value="{{ request.GET.month_value }}">
+    </fieldset>
+    <button type="submit">Применить фильтр</button>
+</form>
+
+<hr>
+
+<!-- Отображаем (при желании) общую сводку: количество, сумма и пр. -->
+{% if transactions %}
+    <p>Всего транзакций (после фильтра): {{ transactions|length }}</p>
+{% else %}
+    <p>Транзакций не найдено.</p>
+{% endif %}
+
+<!-- Кнопка(формы) для скачивания Excel с разными видами отчётов -->
+<form method="get" action="{% url 'users:download_excel_report' %}">
+    <!-- Передаём текущие фильтры скрыто -->
+    <input type="hidden" name="bin_value" value="{{ request.GET.bin_value }}">
+    <input type="hidden" name="month_value" value="{{ request.GET.month_value }}">
+
+    <!-- Выбираем один из видов отчётов -->
+    <label>
+        <input type="radio" name="report_type" value="by_country" checked>
+        Отчёт по странам
+    </label>
+    <label>
+        <input type="radio" name="report_type" value="by_month">
+        Отчёт по месяцам
+    </label>
+    <label>
+        <input type="radio" name="report_type" value="other">
+        Общий отчёт (пример)
+    </label>
+
+    <button type="submit">Скачать Excel</button>
+</form>
+
+<hr>
+
+<!-- Если нужно, вы можете отобразить сами транзакции на странице -->
+{% if transactions %}
+    <table border="1" cellpadding="8" style="border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>BIN</th>
+                <th>Amount</th>
+                <th>Shopper Country</th>
+                <th>Day</th>
+                <th>Month</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for tr in transactions %}
+            <tr>
+                <td>{{ tr.id }}</td>
+                <td>{{ tr.bin }}</td>
+                <td>{{ tr.amount }}</td>
+                <td>{{ tr.shoppercountrycode }}</td>
+                <td>{{ tr.Day }}</td>
+                <td>{{ tr.Month }}</td>
+                <td>{{ tr.result }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<!-- Кнопка "Назад" -->
+<form method="get" action="{% url 'users:test' %}">
+    <button type="submit">Назад</button>
+</form>
+
+</body>
+</html>
