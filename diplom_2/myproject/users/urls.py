@@ -20,7 +20,10 @@ urlpatterns = [
     path("generated/", views.generated, name='generated'),
     path("tex/", views.tex, name='tex'),
     path("test_one/", views.test_one, name='test_one'),
-    path("tex_one/", views.tex_one, name='tex_one')
+    path("tex_one/", views.tex_one, name='tex_one'),
+    path('update_transaction/<int:transaction_id>/', views.update_transaction, name='update_transaction'),
+    path('reports/', views.reports_view, name='reports_page'),
+    path('reports/download-excel/', views.download_excel_report, name='download_excel_report'),
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:  
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

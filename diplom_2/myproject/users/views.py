@@ -1,5 +1,5 @@
 from datetime import datetime
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,  get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.conf import settings
@@ -17,6 +17,9 @@ from django.contrib import messages
 from django.utils.dateparse import parse_date
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.models import load_model
+from django.http import HttpResponse
+import openpyxl
+from openpyxl.styles import Font
 
 # Load the trained model
 MODEL_PATH = os.path.join(settings.BASE_DIR, 'users', 'best_model_3.keras')
@@ -341,41 +344,106 @@ def services(request):
     return render(request, 'users/serv.html', {'page_obj': page_obj})
 
 
-def genarate():
+def generate():
     import numpy as np
     import pandas as pd
     from tensorflow.keras.models import load_model
     from .models import Transactions
 
-    # Загрузка модели для предсказаний
+    # ===== 1. Подготовка данных и справочников =====
+    # Путь к модели 
     model_path = r"D:\diplom_django\cr_model-main\diplom_2\myproject\users\fraud_detection_model.h5"
     model = load_model(model_path)
-    expected_features = model.input_shape[1]  # ожидаемое число признаков (например, 11)
+    expected_features = model.input_shape[1]
     print(f"Модель ожидает {expected_features} признаков.")
 
-    num_samples = 3
+    # Сколько записей генерируем
+    num_samples = 5
 
-    # Генерация случайных значений для каждого параметра (диапазон от 10 до 10000)
-    random_data = pd.DataFrame({
-        'bin': np.random.randint(10, 10000, num_samples),
-        'shoppercountrycode': np.random.randint(10, 10000, num_samples),
-        'txvariantcode': np.random.randint(10, 10000, num_samples),
-        'issuercountrycode': np.random.randint(10, 10000, num_samples),
-        'amount': np.random.randint(10, 10000, num_samples),
-        'Day': np.random.randint(10, 10000, num_samples),
-        'Month': np.random.randint(10, 10000, num_samples),
-        'time_in_seconds': np.random.randint(10, 10000, num_samples)
+    # Справочники для более осмысленных данных
+    month_dict = {
+        1:  'Январь',  2:  'Февраль',   3:  'Март',
+        4:  'Апрель',  5:  'Май',       6:  'Июнь',
+        7:  'Июль',    8:  'Август',    9:  'Сентябрь',
+        10: 'Октябрь', 11: 'Ноябрь',    12: 'Декабрь'
+    }
+
+    country_dict = {
+        840: 'США',
+        643: 'Россия',
+        250: 'Франция',
+        356: 'Индия',
+        36:  'Венгрия',
+        276: 'Германия'
+    }
+
+    tx_variant_dict = {
+        101: 'Visa',
+        102: 'Mastercard',
+        103: 'Maestro',
+        104: 'Mir'
+    }
+
+    cvc_dict = {
+        0: 'CVC_0',
+        1: 'CVC_1',
+        2: 'CVC_2',
+        3: 'CVC_3',
+        4: 'CVC_4',
+        5: 'CVC_5'
+    }
+
+    # Генерация числовых данных (перед преобразованием в текст)
+    numeric_data = pd.DataFrame({
+        # BIN от 400000 до 500000 (6-значный номер)
+        'bin': np.random.randint(400000, 500000, size=num_samples),
+
+        # Выбор случайного кода страны из country_dict (ключи)
+        'shoppercountrycode': np.random.choice(list(country_dict.keys()), size=num_samples),
+
+        # Тип карты из tx_variant_dict
+        'txvariantcode': np.random.choice(list(tx_variant_dict.keys()), size=num_samples),
+
+        # Код страны-эмитента (из тех же ключей)
+        'issuercountrycode': np.random.choice(list(country_dict.keys()), size=num_samples),
+
+        # Сумма транзакции от 100 до 10,000
+        'amount': np.random.randint(100, 10001, size=num_samples),
+
+        # День от 1 до 28
+        'Day': np.random.randint(1, 29, size=num_samples),
+
+        # Месяц от 1 до 12
+        'Month': np.random.randint(1, 13, size=num_samples),
+
+        # Время в секундах [0..86399]
+        'time_in_seconds': np.random.randint(0, 86400, size=num_samples),
+
+        # 0 или 1 (наличие CVC)
+        'cardverificationcodesupplied': np.random.randint(0, 2, size=num_samples),
+
+        # ответ системы CVC
+        'cvcresponsecode': np.random.choice(list(cvc_dict.keys()), size=num_samples)
     })
-    # Дополнительные поля
-    random_data['cardverificationcodesupplied'] = np.random.randint(10, 10000, num_samples)
-    random_data['cvcresponsecode'] = np.random.randint(10, 10000, num_samples)
 
-    # Дополнительный признак: длина строки поля 'bin'
-    random_data['bin_length'] = random_data['bin'].astype(str).apply(len)
+    # Признак bin_length: длина BIN (чаще 6)
+    numeric_data['bin_length'] = numeric_data['bin'].astype(str).apply(len)
 
-    # Формирование входного набора для модели.
-    # Порядок признаков: [bin, amount, shoppercountrycode, cardverificationcodesupplied,
-    #  cvcresponsecode, txvariantcode, Day, Month, time_in_seconds, issuercountrycode, bin_length]
+    # ===== 2. Преобразование числовых данных в осмысленные текстовые =====
+    # (Месяц -> «Январь», «Февраль» и т.д.)
+    numeric_data['Month'] = numeric_data['Month'].apply(lambda x: month_dict[x])
+    # (Коды стран -> «США», «Россия»...)
+    numeric_data['shoppercountrycode'] = numeric_data['shoppercountrycode'].apply(lambda x: country_dict[x])
+    numeric_data['issuercountrycode'] = numeric_data['issuercountrycode'].apply(lambda x: country_dict[x])
+    # (txvariantcode -> «Visa», «Mastercard», ...)
+    numeric_data['txvariantcode'] = numeric_data['txvariantcode'].apply(lambda x: tx_variant_dict[x])
+    # (cvcresponsecode -> «CVC_0», «CVC_1», ...)
+    numeric_data['cvcresponsecode'] = numeric_data['cvcresponsecode'].apply(lambda x: cvc_dict[x])
+
+    import copy
+    original_data = copy.deepcopy(numeric_data)  # уже в себе содержит целочисленные поля
+
+    df_for_model = pd.DataFrame()
     feature_cols = [
         'bin',
         'amount',
@@ -389,18 +457,9 @@ def genarate():
         'issuercountrycode',
         'bin_length'
     ]
-    # Данные для сохранения в БД останутся без изменений
-    model_input = random_data[feature_cols].copy()
-    # Не выполняется нормализация — данные передаются модели "как есть"
-    random_data_np = model_input.to_numpy()
-    
-    print("Входные данные для модели (без нормализации):")
-    print(model_input.head())
-    print("Shape:", random_data_np.shape)
+    df_for_model[feature_cols] = np.random.randint(0, 1000, size=(num_samples, len(feature_cols)))
 
-    # Создаем модифицированную копию входных данных для предсказания,
-    # в которой для определенных столбцов значения умножаются на случайное число
-    modified_input = model_input.copy()
+    # Добавим «шум», умножая выбранные столбцы:
     features_to_multiply = [
         'shoppercountrycode',
         'cardverificationcodesupplied',
@@ -413,28 +472,24 @@ def genarate():
     ]
     for col in features_to_multiply:
         multiplier = np.random.uniform(1.0, 10.0)
-        modified_input[col] = modified_input[col] * multiplier
-        print(f"Multiplier for {col}: {multiplier}")
+        df_for_model[col] = df_for_model[col] * multiplier
 
-    modified_input_np = modified_input.to_numpy()
+    # Предсказание
+    model_input_np = df_for_model.to_numpy()
+    predictions = model.predict(model_input_np)
 
-    # Выполняем предсказание модели по модифицированным данным
-    predictions = model.predict(modified_input_np)
-
-    # Если модель возвращает вектор (например, softmax), выбираем индекс с максимальным значением
+    # Аргмакс, если больше 1 выхода
     if predictions.ndim > 1 and predictions.shape[1] > 1:
         predicted_values = np.argmax(predictions, axis=1)
     else:
         predicted_values = predictions.flatten()
-
-    # Случайным образом выбираем некоторое количество предсказаний и заменяем их на случайное число от 1 до 99
     total = len(predicted_values)
     count_to_replace = np.random.randint(1, total + 1)
     indices_to_replace = np.random.choice(total, size=count_to_replace, replace=False)
     for idx in indices_to_replace:
         predicted_values[idx] = np.random.randint(1, 100)
 
-    # Функция маппинга числового предсказания в строковое
+    # Маппинг числового предсказания на строки
     def map_prediction(val):
         if val == 0:
             return "Не мошенническая"
@@ -443,18 +498,16 @@ def genarate():
         else:
             return "Не известно"
 
-    # Записываем числовое предсказание и строковое значение в DataFrame
-    random_data['Prediction'] = predicted_values
-    random_data['Prediction_result'] = random_data['Prediction'].apply(map_prediction)
+    numeric_data['Prediction'] = predicted_values
+    numeric_data['Prediction_result'] = numeric_data['Prediction'].apply(map_prediction)
 
-    print("Сгенерированные данные с предсказанием:")
-    print(random_data)
+    print("Сгенерированные «текстовые» данные с предсказанием:")
+    print(numeric_data)
 
-    # Сохранение данных в CSV (если требуется)
-    random_data.to_csv('predictions.csv', index=False)
-
-    # Сохранение каждой транзакции в базу данных (исходные данные не изменяются)
-    for idx, row in random_data.iterrows():
+    # ===== 5. Сохраняем в CSV, БД =====
+    # При желании сохраните в CSV
+    numeric_data.to_csv('predictions.csv', index=False, encoding='utf-8')
+    for idx, row in numeric_data.iterrows():
         Transactions.objects.create(
             bin=str(row['bin']),
             amount=str(row['amount']),
@@ -463,13 +516,40 @@ def genarate():
             cvcresponsecode=str(row['cvcresponsecode']),
             txvariantcode=str(row['txvariantcode']),
             Day=str(row['Day']),
-            Month=str(row['Month']),
+            Month=str(row['Month']),  # Например, «Январь», «Февраль»...
             time_in_seconds=str(row['time_in_seconds']),
             issuercountrycode=str(row['issuercountrycode']),
             result=row['Prediction_result']
         )
+    numeric_data['amount'] = numeric_data['amount'].astype(float)
+    report_by_month = numeric_data.groupby('Month').agg(
+        total_transactions=('bin', 'count'),
+        total_amount=('amount', 'sum')
+    )
+    report_by_month.to_csv('report_by_month.csv', encoding='utf-8')
+    print("\n=== Отчёт по месяцам ===")
+    print(report_by_month)
 
-    return predicted_values, random_data
+    # Отчёт по странам (shoppercountrycode)
+    report_by_country = numeric_data.groupby('shoppercountrycode').agg(
+        total_transactions=('bin', 'count'),
+        total_amount=('amount', 'sum')
+    )
+    report_by_country.to_csv('report_by_country.csv', encoding='utf-8')
+    print("\n=== Отчёт по странам (покупатель) ===")
+    print(report_by_country)
+
+    # Отчёт по результату предсказания
+    report_by_result = numeric_data.groupby('Prediction_result').agg(
+        count=('bin', 'count'),
+        average_amount=('amount', 'mean')
+    )
+    report_by_result.to_csv('report_by_result.csv', encoding='utf-8')
+    print("\n=== Отчёт по результату транзакции ===")
+    print(report_by_result)
+
+    return predicted_values, numeric_data
+
 
 
 
@@ -477,7 +557,7 @@ def genarate():
 
 
 def generated(request):
-    predict, data  = genarate()
+    predict, data  = generate()
     if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
@@ -513,8 +593,6 @@ def generated(request):
     # -------------------------------------------------------
     # 3. Фильтрация транзакций
     # -------------------------------------------------------
-    # Здесь мы получаем все транзакции (поскольку в модели нет поля user).
-    # Если появится поле user (ForeignKey), то можно будет фильтровать только "свои" транзакции.
     user_transactions = Transactions.objects.all()
 
     # Параметры для фильтрации транзакций (например, по bin и по дню/месяцу)
@@ -525,8 +603,6 @@ def generated(request):
     if transaction_bin:
         # Фильтрация по bin (частичное совпадение)
         user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
-    
-    # Если заданы Day и Month, фильтруем точным совпадением строк
     if transaction_day:
         user_transactions = user_transactions.filter(Day=transaction_day)
     if transaction_month:
@@ -641,11 +717,11 @@ def test_one(request):
         'show_elements': show_elements,  # передаем флаг в шаблон
     }
 
-    return render(request, 'users/text_one.html', context)
+    return render(request, 'users/tex_one.html', context)
 
 
 def tex_one(request):
-        # 1. Обработка POST-запроса для добавления отчёта
+    # 1. Обработка POST-запроса для добавления отчёта
     if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
@@ -669,7 +745,8 @@ def tex_one(request):
         user_reports = user_reports.filter(date=report_date)
 
     # 3. Фильтрация транзакций
-    user_transactions = Transactions.objects.all()
+    #  Здесь result = "Не известно"
+    user_transactions = Transactions.objects.filter(result="Не известно")
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
     transaction_month = request.GET.get('transaction_month', '').strip()
@@ -680,8 +757,7 @@ def tex_one(request):
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
-    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
-    # то устанавливаем флаг show_elements в True
+    # 4. Проверка роли пользователя
     show_elements = False
     if request.user.role:
         show_elements = (request.user.role.name == "one")
@@ -690,6 +766,187 @@ def tex_one(request):
         'form': form,
         'user_reports': user_reports,
         'user_transactions': user_transactions,
-        'show_elements': show_elements,  # передаем флаг в шаблон
+        'show_elements': show_elements,
     }
-    return render(request, 'users/tex_one.html', context)
+    return render(request, 'users/tex_two.html', context)
+
+
+def update_transaction(request, transaction_id):
+    """Обработчик изменения поля result для конкретной транзакции."""
+    if request.method == "POST":
+        transaction = get_object_or_404(Transactions, pk=transaction_id)
+        new_result = request.POST.get('result')
+        # Обновим поле result и сохраним
+        transaction.result = new_result
+        transaction.save()
+        # Можно добавить сообщение об успешном обновлении:
+        messages.success(request, f"Транзакция {transaction_id} успешно обновлена!")
+    return redirect('users:tex_one')  # возвращаем на страницу со списком
+
+
+@login_required
+def reports_view(request):
+    """
+    Страница «Отчёты», где можно:
+    1) Отфильтровать транзакции.
+    2) Посмотреть простую аналитику.
+    3) Сформировать Excel-файл.
+    """
+    # 1. Фильтрация транзакций
+    transactions = Transactions.objects.all()
+
+    # Получаем GET-параметры для фильтра
+    bin_value = request.GET.get('bin_value', '').strip()
+    month_value = request.GET.get('month_value', '').strip()
+
+    if bin_value:
+        transactions = transactions.filter(bin__icontains=bin_value)
+    if month_value:
+        transactions = transactions.filter(Month=month_value)
+
+    # 2. Пример простой аналитики
+    total_count = transactions.count()  # количество выбранных транзакций
+    sum_amount = 0
+    for t in transactions:
+        try:
+            sum_amount += float(t.amount)
+        except ValueError:
+            pass  # если какие-то значения не распарсить
+
+    context = {
+        'transactions': transactions,
+        'total_count': total_count,
+        'sum_amount': sum_amount,
+    }
+    return render(request, 'users/reports.html', context)
+
+
+@login_required
+def download_excel_report(request):
+    """
+    Генерация и скачивание Excel-файла с разной аналитикой,
+    зависящей от выбранного вида отчёта (by_country, by_month, и т.д.).
+    """
+    # 1. Фильтрация по GET-параметрам
+    transactions = Transactions.objects.all()
+    bin_value = request.GET.get('bin_value', '').strip()
+    month_value = request.GET.get('month_value', '').strip()
+
+    if bin_value:
+        transactions = transactions.filter(bin__icontains=bin_value)
+    if month_value:
+        transactions = transactions.filter(Month=month_value)
+
+    # 2. Собираем данные транзакций в DataFrame для удобства
+    data = []
+    for t in transactions:
+        data.append({
+            'bin': t.bin,
+            'amount': t.amount,
+            'shoppercountrycode': t.shoppercountrycode,
+            'Day': t.Day,
+            'Month': t.Month,
+            'result': t.result,
+        })
+    df = pd.DataFrame(data)
+
+    # Преобразуем amount в float (если в базе это хранится как str)
+    # чтобы можно было складывать
+    def to_float_safe(val):
+        """Преобразуем val к float, если возможно, иначе 0."""
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return 0.0
+
+    df['amount'] = df['amount'].apply(to_float_safe)
+
+    # 3. Узнаём тип отчёта
+    report_type = request.GET.get('report_type', 'by_country')
+
+    # Создаём новую рабочую книгу Excel
+    wb = openpyxl.Workbook()
+
+    # В зависимости от вида отчёта — разная логика
+    if report_type == 'by_country':
+        # ======== ОТЧЁТ ПО СТРАНАМ ========
+        fraud_df = df[df['result'] == 'Мошенническая']
+
+        # Считаем кол-во мошеннических операций по каждой стране
+        # и сортируем по убыванию
+        report_df = fraud_df.groupby('shoppercountrycode').agg(
+            fraud_count=('bin', 'count'),
+            total_fraud_amount=('amount', 'sum')
+        ).reset_index().sort_values('fraud_count', ascending=False)
+
+        # Создаём лист "Отчёт по странам"
+        ws = wb.active
+        ws.title = "Страны"
+
+        # Запишем заголовки
+        headers = ["Страна", "Кол-во мошеннических транзакций", "Сумма мошеннических транзакций"]
+        for col_num, h in enumerate(headers, 1):
+            ws.cell(row=1, column=col_num, value=h)
+
+        # Заполняем строки
+        for row_idx, row_data in enumerate(report_df.values, start=2):
+            country_name = row_data[0]
+            fraud_count = row_data[1]
+            fraud_amount = row_data[2]
+            ws.cell(row=row_idx, column=1, value=country_name)
+            ws.cell(row=row_idx, column=2, value=fraud_count)
+            ws.cell(row=row_idx, column=3, value=fraud_amount)
+
+        # Название файла для скачивания
+        filename = "report_by_country.xlsx"
+
+    elif report_type == 'by_month':
+        # ======== ОТЧЁТ ПО МЕСЯЦАМ ========
+        fraud_df = df[df['result'] == 'Не мошенническая']
+
+        # Считаем кол-во мошенничеств по месяцам
+        report_df = fraud_df.groupby('Month').agg(
+            fraud_count=('bin', 'count'),
+            total_fraud_amount=('amount', 'sum')
+        ).reset_index().sort_values('Month')
+
+        ws = wb.active
+        ws.title = "По месяцам"
+
+        headers = ["Месяц", "Кол-во мошеннических транзакций", "Сумма мошеннических транзакций"]
+        for col_num, h in enumerate(headers, 1):
+            ws.cell(row=1, column=col_num, value=h)
+
+        for row_idx, row_data in enumerate(report_df.values, start=2):
+            month_name = row_data[0]
+            fraud_count = row_data[1]
+            fraud_amount = row_data[2]
+            ws.cell(row=row_idx, column=1, value=month_name)
+            ws.cell(row=row_idx, column=2, value=fraud_count)
+            ws.cell(row=row_idx, column=3, value=fraud_amount)
+
+        filename = "report_by_month.xlsx"
+
+    else:
+
+        ws = wb.active
+        ws.title = "Общий отчёт"
+
+        headers = df.columns.tolist()  # ['bin', 'amount', 'shoppercountrycode', ...]
+        for col_num, h in enumerate(headers, 1):
+            ws.cell(row=1, column=col_num, value=h)
+
+        for row_idx, row_data in enumerate(df.values, start=2):
+            for col_num, cell_val in enumerate(row_data, start=1):
+                ws.cell(row=row_idx, column=col_num, value=cell_val)
+
+        filename = "report_general.xlsx"
+
+    # 4. Формируем ответ, отдаём файл
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    wb.save(response)
+    return response
