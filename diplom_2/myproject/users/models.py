@@ -92,3 +92,18 @@ class Reports(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class Notification(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        verbose_name='Пользователь'
+    )
+    text = models.TextField(verbose_name='Текст уведомления')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Время создания')
+
+    def __str__(self):
+        # Выводим первые 20 символов уведомления для наглядности
+        return f"Notification for {self.user.username}: {self.text[:20]}"

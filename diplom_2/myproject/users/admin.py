@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.template.response import TemplateResponse
 from django.urls import path
-from .models import User, Role, Services, Transactions, Reports
+from .models import User, Role, Services, Transactions, Reports, Notification
 from .forms import RegistrationForm
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -56,3 +56,4 @@ admin_site.register(Role)
 admin_site.register(Services)
 admin_site.register(Transactions)
 admin_site.register(Reports)
+admin_site.register(Notification)
