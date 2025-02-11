@@ -1,0 +1,18 @@
+{% load static i18n %}
+
+{% block content %}
+  <h1>{% trans "История событий" %}</h1>
+
+  {% if events %}
+    <ul>
+      {% for event in events %}
+        <li>
+          <strong>{{ event.action_time|date:"SHORT_DATETIME_FORMAT" }}</strong> &mdash;
+          {{ event.user.get_username }}: {{ event.change_message }} <em>({{ event.object_repr }})</em>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>{% trans "Нет событий для отображения." %}</p>
+  {% endif %}
+{% endblock %}
