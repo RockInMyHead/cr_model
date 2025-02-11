@@ -1,45 +1,61 @@
-from datetime import datetime
-from django.shortcuts import render, redirect,  get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
-from django.conf import settings
-from tensorflow.keras.models import load_model
-import os
-import numpy as np
-import pandas as pd
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, Predict, ReportsForm
-from .models import Transactions, Services, Reports
+from .models import Transactions, Services, Reports, Notification
 from django.core.paginator import Paginator
-from django.contrib import messages
 from django.utils.dateparse import parse_date
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.models import load_model
-from django.http import HttpResponse
 import openpyxl
 from openpyxl.styles import Font
+import os
+import numpy as np
+import pandas as pd
+from django.conf import settings
+from django.shortcuts import render
+from django.contrib.admin.models import LogEntry
+
+from datetime import datetime
 
 # Load the trained model
 MODEL_PATH = os.path.join(settings.BASE_DIR, 'users', 'best_model_3.keras')
 model = load_model(MODEL_PATH)
+
+
+def event_history_view(request):
+    # Получаем последние 20 записей лога действий, отсортированные по времени действия (самые свежие – первыми)
+    events = LogEntry.objects.all().order_by('-action_time')[:20]
+    return render(request, 'users/update.html', {'events': events})
 
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
             form.save()
+            # (Опционально: можно добавить уведомление о регистрации)
             return redirect('users:login')
     else:
         form = RegistrationForm()
     return render(request, 'users/register.html', {'form': form})
 
+
+def log_notification(user, text):
+    """
+    Функция для создания уведомления для пользователя.
+    """
+    if user.is_authenticated:
+        Notification.objects.create(user=user, text=text)
+
+
 def login(request):
     return render(request, 'users/login.html')
 
+
 def index(request):
     return render(request, 'users/index.html')
+
 
 @login_required
 def test(request):
@@ -50,6 +66,7 @@ def test(request):
             report = form.save(commit=False)
             report.user = request.user
             report.save()
+            log_notification(request.user, "Вы добавили новый отчёт.")
             messages.success(request, "Отчёт успешно добавлен!")
             return redirect('users:test')
         else:
@@ -97,19 +114,22 @@ def test(request):
 def about(request):
     return render(request, 'users/about.html')
 
+
 def get_time_of_day(seconds):
-    if 5*3600 <= seconds < 12*3600:
+    if 5 * 3600 <= seconds < 12 * 3600:
         return 'morning'
-    elif 12*3600 <= seconds < 17*3600:
+    elif 12 * 3600 <= seconds < 17 * 3600:
         return 'evening'
     else:
         return 'night'
+
 
 def process_creationdate(df):
     df['creationdate'] = pd.to_datetime(df['creationdate'])
     df['day'] = df['creationdate'].dt.day
     df['month'] = df['creationdate'].dt.month
     return df
+
 
 def prepare_input(data):
     df = pd.DataFrame([data])
@@ -151,8 +171,8 @@ def prepare_input(data):
     df['is_large_transaction'] = (df['amount'] > 5000).astype(int)
 
     # Calculate 'is_small_transaction'
-    df['is_small_transaction'] = (((df['amount'] > 500) & (df['amount'] < 1500)) | 
-                                   ((df['amount'] > 3000) & (df['amount'] < 4000))).astype(int)
+    df['is_small_transaction'] = (((df['amount'] > 500) & (df['amount'] < 1500)) |
+                                  ((df['amount'] > 3000) & (df['amount'] < 4000))).astype(int)
 
     # Calculate 'is_holiday_season'
     df['is_holiday_season'] = df['month'].isin([1, 12]).astype(int)
@@ -226,7 +246,7 @@ def prepare_input(data):
             df[feature] = 0
     df = df.drop(columns=['shoppercountrycode_UA', 'shoppercountrycode_US'], errors='ignore')
     # Reorder columns to match the required feature order
-    #df = df[required_features]
+    # df = df[required_features]
 
     # Convert all features to float32
     df = df.astype(float)
@@ -238,14 +258,13 @@ def prepare_input(data):
 
     return df.values
 
+
 def predict_transactions(request):
     if request.method == 'POST':
         form = Predict(request.POST)
         if form.is_valid():
             try:
                 # Сначала сохраняем введённые пользователем данные в таблицу Transactions
-                # Обратите внимание, что в модели Transactions поля типа CharField, 
-                # поэтому нужно привести их к строкам.
                 transaction = Transactions.objects.create(
                     bin=str(form.cleaned_data.get('bin', '0')),
                     amount=str(form.cleaned_data.get('amount', '0')),
@@ -259,8 +278,7 @@ def predict_transactions(request):
                     issuercountrycode=form.cleaned_data.get('issuercountrycode', '')
                 )
 
-                # Для прогноза модели нам нужны числовые типы, поэтому собираем 
-                # аналогичный словарь (но уже с преобразованием к int/float для prepare_input).
+                # Подготовка данных для прогноза (приведение к числовым типам)
                 data = {
                     'bin': int(form.cleaned_data.get('bin', 0)),
                     'amount': float(form.cleaned_data.get('amount', 0)),
@@ -274,19 +292,23 @@ def predict_transactions(request):
                     'issuercountrycode': form.cleaned_data.get('issuercountrycode', '')
                 }
 
-                # Debug: распечатать сырые данные
+                # Debug: вывод исходных данных
                 print("Raw Input Data from Form:")
                 print(data)
 
                 input_data = prepare_input(data)
 
-                # Debug: распечатать подготовленные данные
+                # Debug: вывод подготовленных данных
                 print("Input Data Passed to Model:")
                 print(input_data)
                 print(f"Input Data Shape: {input_data.shape}")
 
                 prediction = model.predict(input_data)
                 predicted_class = prediction[0][0]
+
+                # Записываем уведомление о получении данных (если пользователь авторизован)
+                if request.user.is_authenticated:
+                    log_notification(request.user, "Вы получили данные по транзакции.")
 
                 # Debug: вывод результата предсказания
                 print(f"Model Prediction: {predicted_class}")
@@ -351,16 +373,13 @@ def generate():
     from .models import Transactions
 
     # ===== 1. Подготовка данных и справочников =====
-    # Путь к модели 
     model_path = r"D:\diplom_django\cr_model-main\diplom_2\myproject\users\fraud_detection_model.h5"
     model = load_model(model_path)
     expected_features = model.input_shape[1]
     print(f"Модель ожидает {expected_features} признаков.")
 
-    # Сколько записей генерируем
     num_samples = 5
 
-    # Справочники для более осмысленных данных
     month_dict = {
         1:  'Январь',  2:  'Февраль',   3:  'Март',
         4:  'Апрель',  5:  'Май',       6:  'Июнь',
@@ -393,55 +412,28 @@ def generate():
         5: 'CVC_5'
     }
 
-    # Генерация числовых данных (перед преобразованием в текст)
     numeric_data = pd.DataFrame({
-        # BIN от 400000 до 500000 (6-значный номер)
         'bin': np.random.randint(400000, 500000, size=num_samples),
-
-        # Выбор случайного кода страны из country_dict (ключи)
         'shoppercountrycode': np.random.choice(list(country_dict.keys()), size=num_samples),
-
-        # Тип карты из tx_variant_dict
         'txvariantcode': np.random.choice(list(tx_variant_dict.keys()), size=num_samples),
-
-        # Код страны-эмитента (из тех же ключей)
         'issuercountrycode': np.random.choice(list(country_dict.keys()), size=num_samples),
-
-        # Сумма транзакции от 100 до 10,000
         'amount': np.random.randint(100, 10001, size=num_samples),
-
-        # День от 1 до 28
         'Day': np.random.randint(1, 29, size=num_samples),
-
-        # Месяц от 1 до 12
         'Month': np.random.randint(1, 13, size=num_samples),
-
-        # Время в секундах [0..86399]
         'time_in_seconds': np.random.randint(0, 86400, size=num_samples),
-
-        # 0 или 1 (наличие CVC)
         'cardverificationcodesupplied': np.random.randint(0, 2, size=num_samples),
-
-        # ответ системы CVC
         'cvcresponsecode': np.random.choice(list(cvc_dict.keys()), size=num_samples)
     })
 
-    # Признак bin_length: длина BIN (чаще 6)
     numeric_data['bin_length'] = numeric_data['bin'].astype(str).apply(len)
-
-    # ===== 2. Преобразование числовых данных в осмысленные текстовые =====
-    # (Месяц -> «Январь», «Февраль» и т.д.)
     numeric_data['Month'] = numeric_data['Month'].apply(lambda x: month_dict[x])
-    # (Коды стран -> «США», «Россия»...)
     numeric_data['shoppercountrycode'] = numeric_data['shoppercountrycode'].apply(lambda x: country_dict[x])
     numeric_data['issuercountrycode'] = numeric_data['issuercountrycode'].apply(lambda x: country_dict[x])
-    # (txvariantcode -> «Visa», «Mastercard», ...)
     numeric_data['txvariantcode'] = numeric_data['txvariantcode'].apply(lambda x: tx_variant_dict[x])
-    # (cvcresponsecode -> «CVC_0», «CVC_1», ...)
     numeric_data['cvcresponsecode'] = numeric_data['cvcresponsecode'].apply(lambda x: cvc_dict[x])
 
     import copy
-    original_data = copy.deepcopy(numeric_data)  # уже в себе содержит целочисленные поля
+    original_data = copy.deepcopy(numeric_data)
 
     df_for_model = pd.DataFrame()
     feature_cols = [
@@ -459,7 +451,6 @@ def generate():
     ]
     df_for_model[feature_cols] = np.random.randint(0, 1000, size=(num_samples, len(feature_cols)))
 
-    # Добавим «шум», умножая выбранные столбцы:
     features_to_multiply = [
         'shoppercountrycode',
         'cardverificationcodesupplied',
@@ -474,11 +465,9 @@ def generate():
         multiplier = np.random.uniform(1.0, 10.0)
         df_for_model[col] = df_for_model[col] * multiplier
 
-    # Предсказание
     model_input_np = df_for_model.to_numpy()
     predictions = model.predict(model_input_np)
 
-    # Аргмакс, если больше 1 выхода
     if predictions.ndim > 1 and predictions.shape[1] > 1:
         predicted_values = np.argmax(predictions, axis=1)
     else:
@@ -489,7 +478,6 @@ def generate():
     for idx in indices_to_replace:
         predicted_values[idx] = np.random.randint(1, 100)
 
-    # Маппинг числового предсказания на строки
     def map_prediction(val):
         if val == 0:
             return "Не мошенническая"
@@ -504,8 +492,6 @@ def generate():
     print("Сгенерированные «текстовые» данные с предсказанием:")
     print(numeric_data)
 
-    # ===== 5. Сохраняем в CSV, БД =====
-    # При желании сохраните в CSV
     numeric_data.to_csv('predictions.csv', index=False, encoding='utf-8')
     for idx, row in numeric_data.iterrows():
         Transactions.objects.create(
@@ -516,7 +502,7 @@ def generate():
             cvcresponsecode=str(row['cvcresponsecode']),
             txvariantcode=str(row['txvariantcode']),
             Day=str(row['Day']),
-            Month=str(row['Month']),  # Например, «Январь», «Февраль»...
+            Month=str(row['Month']),
             time_in_seconds=str(row['time_in_seconds']),
             issuercountrycode=str(row['issuercountrycode']),
             result=row['Prediction_result']
@@ -530,7 +516,6 @@ def generate():
     print("\n=== Отчёт по месяцам ===")
     print(report_by_month)
 
-    # Отчёт по странам (shoppercountrycode)
     report_by_country = numeric_data.groupby('shoppercountrycode').agg(
         total_transactions=('bin', 'count'),
         total_amount=('amount', 'sum')
@@ -539,7 +524,6 @@ def generate():
     print("\n=== Отчёт по странам (покупатель) ===")
     print(report_by_country)
 
-    # Отчёт по результату предсказания
     report_by_result = numeric_data.groupby('Prediction_result').agg(
         count=('bin', 'count'),
         average_amount=('amount', 'mean')
@@ -551,57 +535,37 @@ def generate():
     return predicted_values, numeric_data
 
 
-
-
-
-
-
 def generated(request):
-    predict, data  = generate()
+    predict, data = generate()
     if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
-            # Создаём объект Reports, но пока не сохраняем в БД
             report = form.save(commit=False)
-            # Привязываем к текущему пользователю
             report.user = request.user
             report.save()
+            log_notification(request.user, "Вы добавили новый отчёт.")
             messages.success(request, "Отчёт успешно добавлен!")
-            return redirect('users:test')  # или на другую страницу
+            return redirect('users:test')
         else:
             messages.error(request, "Произошла ошибка при сохранении отчёта.")
     else:
         form = ReportsForm()
 
-    # -------------------------------------------------------
-    # 2. Фильтрация отчётов
-    # -------------------------------------------------------
+    # Фильтрация отчётов
     user_reports = Reports.objects.filter(user=request.user)
-
-    # Параметры из GET-запроса
     report_name = request.GET.get('report_name', '').strip()
     report_date = request.GET.get('report_date', '').strip()
-
-    # Фильтр по имени отчёта
     if report_name:
         user_reports = user_reports.filter(name__icontains=report_name)
-
-    # Фильтр по точной дате отчёта (формат YYYY-MM-DD)
     if report_date:
         user_reports = user_reports.filter(date=report_date)
 
-    # -------------------------------------------------------
-    # 3. Фильтрация транзакций
-    # -------------------------------------------------------
+    # Фильтрация транзакций
     user_transactions = Transactions.objects.all()
-
-    # Параметры для фильтрации транзакций (например, по bin и по дню/месяцу)
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
     transaction_month = request.GET.get('transaction_month', '').strip()
-
     if transaction_bin:
-        # Фильтрация по bin (частичное совпадение)
         user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
     if transaction_day:
         user_transactions = user_transactions.filter(Day=transaction_day)
@@ -618,13 +582,14 @@ def generated(request):
 
 
 def tex(request):
-        # 1. Обработка POST-запроса для добавления отчёта
+    # Обработка POST-запроса для добавления отчёта
     if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
             report = form.save(commit=False)
             report.user = request.user
             report.save()
+            log_notification(request.user, "Вы добавили новый отчёт.")
             messages.success(request, "Отчёт успешно добавлен!")
             return redirect('users:test')
         else:
@@ -632,7 +597,7 @@ def tex(request):
     else:
         form = ReportsForm()
 
-    # 2. Фильтрация отчётов
+    # Фильтрация отчётов
     user_reports = Reports.objects.filter(user=request.user)
     report_name = request.GET.get('report_name', '').strip()
     report_date = request.GET.get('report_date', '').strip()
@@ -641,7 +606,7 @@ def tex(request):
     if report_date:
         user_reports = user_reports.filter(date=report_date)
 
-    # 3. Фильтрация транзакций
+    # Фильтрация транзакций
     user_transactions = Transactions.objects.all()
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
@@ -653,8 +618,7 @@ def tex(request):
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
-    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
-    # то устанавливаем флаг show_elements в True
+    # Проверка роли пользователя
     show_elements = False
     if request.user.role:
         show_elements = (request.user.role.name == "one")
@@ -663,19 +627,20 @@ def tex(request):
         'form': form,
         'user_reports': user_reports,
         'user_transactions': user_transactions,
-        'show_elements': show_elements,  # передаем флаг в шаблон
+        'show_elements': show_elements,
     }
     return render(request, 'users/tex.html', context)
 
 
 def test_one(request):
-    # 1. Обработка POST-запроса для добавления отчёта
+    # Обработка GET-запроса для добавления отчёта
     if request.method == 'GET' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
             report = form.save(commit=False)
             report.user = request.user
             report.save()
+            log_notification(request.user, "Вы добавили новый отчёт.")
             messages.success(request, "Отчёт успешно добавлен!")
             return redirect('users:test')
         else:
@@ -683,7 +648,7 @@ def test_one(request):
     else:
         form = ReportsForm()
 
-    # 2. Фильтрация отчётов
+    # Фильтрация отчётов
     user_reports = Reports.objects.filter(user=request.user)
     report_name = request.GET.get('report_name', '').strip()
     report_date = request.GET.get('report_date', '').strip()
@@ -692,7 +657,7 @@ def test_one(request):
     if report_date:
         user_reports = user_reports.filter(date=report_date)
 
-    # 3. Фильтрация транзакций
+    # Фильтрация транзакций
     user_transactions = Transactions.objects.all()
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
@@ -704,8 +669,7 @@ def test_one(request):
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
-    # 4. Проверка роли пользователя. Если роль установлена и ее имя равно "one",
-    # то устанавливаем флаг show_elements в True
+    # Проверка роли пользователя
     show_elements = False
     if request.user.role:
         show_elements = (request.user.role.name == "one")
@@ -714,20 +678,21 @@ def test_one(request):
         'form': form,
         'user_reports': user_reports,
         'user_transactions': user_transactions,
-        'show_elements': show_elements,  # передаем флаг в шаблон
+        'show_elements': show_elements,
     }
 
     return render(request, 'users/tex_one.html', context)
 
 
 def tex_one(request):
-    # 1. Обработка POST-запроса для добавления отчёта
+    # Обработка POST-запроса для добавления отчёта
     if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
             report = form.save(commit=False)
             report.user = request.user
             report.save()
+            log_notification(request.user, "Вы добавили новый отчёт.")
             messages.success(request, "Отчёт успешно добавлен!")
             return redirect('users:test')
         else:
@@ -735,7 +700,7 @@ def tex_one(request):
     else:
         form = ReportsForm()
 
-    # 2. Фильтрация отчётов
+    # Фильтрация отчётов
     user_reports = Reports.objects.filter(user=request.user)
     report_name = request.GET.get('report_name', '').strip()
     report_date = request.GET.get('report_date', '').strip()
@@ -744,8 +709,7 @@ def tex_one(request):
     if report_date:
         user_reports = user_reports.filter(date=report_date)
 
-    # 3. Фильтрация транзакций
-    #  Здесь result = "Не известно"
+    # Фильтрация транзакций (result = "Не известно")
     user_transactions = Transactions.objects.filter(result="Не известно")
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
@@ -757,7 +721,7 @@ def tex_one(request):
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
-    # 4. Проверка роли пользователя
+    # Проверка роли пользователя
     show_elements = False
     if request.user.role:
         show_elements = (request.user.role.name == "one")
@@ -776,12 +740,11 @@ def update_transaction(request, transaction_id):
     if request.method == "POST":
         transaction = get_object_or_404(Transactions, pk=transaction_id)
         new_result = request.POST.get('result')
-        # Обновим поле result и сохраним
         transaction.result = new_result
         transaction.save()
-        # Можно добавить сообщение об успешном обновлении:
+        log_notification(request.user, f"Вы обновили транзакцию с ID {transaction_id}.")
         messages.success(request, f"Транзакция {transaction_id} успешно обновлена!")
-    return redirect('users:tex_one')  # возвращаем на страницу со списком
+    return redirect('users:tex_one')
 
 
 @login_required
@@ -792,10 +755,9 @@ def reports_view(request):
     2) Посмотреть простую аналитику.
     3) Сформировать Excel-файл.
     """
-    # 1. Фильтрация транзакций
+    # Фильтрация транзакций
     transactions = Transactions.objects.all()
 
-    # Получаем GET-параметры для фильтра
     bin_value = request.GET.get('bin_value', '').strip()
     month_value = request.GET.get('month_value', '').strip()
 
@@ -804,14 +766,13 @@ def reports_view(request):
     if month_value:
         transactions = transactions.filter(Month=month_value)
 
-    # 2. Пример простой аналитики
-    total_count = transactions.count()  # количество выбранных транзакций
+    total_count = transactions.count()
     sum_amount = 0
     for t in transactions:
         try:
             sum_amount += float(t.amount)
         except ValueError:
-            pass  # если какие-то значения не распарсить
+            pass
 
     context = {
         'transactions': transactions,
@@ -824,10 +785,8 @@ def reports_view(request):
 @login_required
 def download_excel_report(request):
     """
-    Генерация и скачивание Excel-файла с разной аналитикой,
-    зависящей от выбранного вида отчёта (by_country, by_month, и т.д.).
+    Генерация и скачивание Excel-файла с аналитикой.
     """
-    # 1. Фильтрация по GET-параметрам
     transactions = Transactions.objects.all()
     bin_value = request.GET.get('bin_value', '').strip()
     month_value = request.GET.get('month_value', '').strip()
@@ -837,7 +796,6 @@ def download_excel_report(request):
     if month_value:
         transactions = transactions.filter(Month=month_value)
 
-    # 2. Собираем данные транзакций в DataFrame для удобства
     data = []
     for t in transactions:
         data.append({
@@ -850,10 +808,7 @@ def download_excel_report(request):
         })
     df = pd.DataFrame(data)
 
-    # Преобразуем amount в float (если в базе это хранится как str)
-    # чтобы можно было складывать
     def to_float_safe(val):
-        """Преобразуем val к float, если возможно, иначе 0."""
         try:
             return float(val)
         except (ValueError, TypeError):
@@ -861,50 +816,30 @@ def download_excel_report(request):
 
     df['amount'] = df['amount'].apply(to_float_safe)
 
-    # 3. Узнаём тип отчёта
     report_type = request.GET.get('report_type', 'by_country')
 
-    # Создаём новую рабочую книгу Excel
     wb = openpyxl.Workbook()
 
-    # В зависимости от вида отчёта — разная логика
     if report_type == 'by_country':
-        # ======== ОТЧЁТ ПО СТРАНАМ ========
         fraud_df = df[df['result'] == 'Мошенническая']
-
-        # Считаем кол-во мошеннических операций по каждой стране
-        # и сортируем по убыванию
         report_df = fraud_df.groupby('shoppercountrycode').agg(
             fraud_count=('bin', 'count'),
             total_fraud_amount=('amount', 'sum')
         ).reset_index().sort_values('fraud_count', ascending=False)
 
-        # Создаём лист "Отчёт по странам"
         ws = wb.active
         ws.title = "Страны"
-
-        # Запишем заголовки
         headers = ["Страна", "Кол-во мошеннических транзакций", "Сумма мошеннических транзакций"]
         for col_num, h in enumerate(headers, 1):
             ws.cell(row=1, column=col_num, value=h)
-
-        # Заполняем строки
         for row_idx, row_data in enumerate(report_df.values, start=2):
-            country_name = row_data[0]
-            fraud_count = row_data[1]
-            fraud_amount = row_data[2]
-            ws.cell(row=row_idx, column=1, value=country_name)
-            ws.cell(row=row_idx, column=2, value=fraud_count)
-            ws.cell(row=row_idx, column=3, value=fraud_amount)
-
-        # Название файла для скачивания
+            ws.cell(row=row_idx, column=1, value=row_data[0])
+            ws.cell(row=row_idx, column=2, value=row_data[1])
+            ws.cell(row=row_idx, column=3, value=row_data[2])
         filename = "report_by_country.xlsx"
 
     elif report_type == 'by_month':
-        # ======== ОТЧЁТ ПО МЕСЯЦАМ ========
         fraud_df = df[df['result'] == 'Не мошенническая']
-
-        # Считаем кол-во мошенничеств по месяцам
         report_df = fraud_df.groupby('Month').agg(
             fraud_count=('bin', 'count'),
             total_fraud_amount=('amount', 'sum')
@@ -912,41 +847,33 @@ def download_excel_report(request):
 
         ws = wb.active
         ws.title = "По месяцам"
-
         headers = ["Месяц", "Кол-во мошеннических транзакций", "Сумма мошеннических транзакций"]
         for col_num, h in enumerate(headers, 1):
             ws.cell(row=1, column=col_num, value=h)
-
         for row_idx, row_data in enumerate(report_df.values, start=2):
-            month_name = row_data[0]
-            fraud_count = row_data[1]
-            fraud_amount = row_data[2]
-            ws.cell(row=row_idx, column=1, value=month_name)
-            ws.cell(row=row_idx, column=2, value=fraud_count)
-            ws.cell(row=row_idx, column=3, value=fraud_amount)
-
+            ws.cell(row=row_idx, column=1, value=row_data[0])
+            ws.cell(row=row_idx, column=2, value=row_data[1])
+            ws.cell(row=row_idx, column=3, value=row_data[2])
         filename = "report_by_month.xlsx"
 
     else:
-
         ws = wb.active
         ws.title = "Общий отчёт"
-
-        headers = df.columns.tolist()  # ['bin', 'amount', 'shoppercountrycode', ...]
+        headers = df.columns.tolist()
         for col_num, h in enumerate(headers, 1):
             ws.cell(row=1, column=col_num, value=h)
-
         for row_idx, row_data in enumerate(df.values, start=2):
             for col_num, cell_val in enumerate(row_data, start=1):
                 ws.cell(row=row_idx, column=col_num, value=cell_val)
-
         filename = "report_general.xlsx"
 
-    # 4. Формируем ответ, отдаём файл
+    # Записываем уведомление о скачивании отчёта
+    if request.user.is_authenticated:
+        log_notification(request.user, "Вы скачали Excel-отчёт.")
+
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
     wb.save(response)
     return response

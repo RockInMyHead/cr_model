@@ -24,6 +24,7 @@ urlpatterns = [
     path('update_transaction/<int:transaction_id>/', views.update_transaction, name='update_transaction'),
     path('reports/', views.reports_view, name='reports_page'),
     path('reports/download-excel/', views.download_excel_report, name='download_excel_report'),
+    path('event_history_view/', views.event_history_view, name='event_history_view'),
 ]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:  
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
