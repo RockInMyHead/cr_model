@@ -1,4 +1,5 @@
-<div>
+{% if user.is_authenticated %}
+  <div>
     <h3>Информация о пользователе</h3>
     <p><strong>Имя:</strong> {{ user.first_name }}</p>
     <p><strong>Фамилия:</strong> {{ user.second_name }}</p>
@@ -6,53 +7,81 @@
     <p><strong>Email:</strong> {{ user.email }}</p>
     <p><strong>Телефон:</strong> {{ user.phone }}</p>
     <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
-</div>
-   
+  </div>
 
-        </tbody>
-    </table>
-    {% if user.role and user.role.name == "one" %}
+  <hr>
+
+  <!-- Отображаем фильтрацию и отчёты, если роль "one" -->
+  {% if show_elements %}
+    <h3>Фильтрация отчётов</h3>
+    <form method="get" action="">
+      <fieldset style="margin-bottom: 1rem; padding: 0.5rem;">
+        <legend>Фильтр по отчётам:</legend>
+        <label for="report_name">Название отчёта:</label>
+        <input type="text" name="report_name" id="report_name" value="{{ request.GET.report_name }}">
+        <label for="report_date">Дата отчёта:</label>
+        <input type="date" name="report_date" id="report_date" value="{{ request.GET.report_date }}">
+      </fieldset>
+    </form>
+    <h3>Добавить новый отчёт</h3>
+    <form method="post" action="">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" name="add_report" value="1">Сохранить отчёт</button>
+    </form>
+  {% endif %}
+
+  <!-- Кнопка перехода к истории транзакций -->
+  <form method="post" action="{% url 'users:tex_one' %}">
+    {% csrf_token %}
+    <button class="butt3" type="submit">История транзакций</button>
+  </form>
+
+  <!-- Форма для генерации транзакций -->
+  <h3>Генерация транзакций</h3>
+  <form method="post" action="{% url 'users:generated' %}">
+    {% csrf_token %}
     
-    <h3>История транзакций</h3>
-    <table border="1" cellpadding="8" style="border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th>BIN</th>
-                <th>Amount</th>
-                <th>Shopper Country</th>
-                <th>CVC Supplied</th>
-                <th>CVC Response</th>
-                <th>txvariant</th>
-                <th>Day</th>
-                <th>Month</th>
-                <th>Time in seconds</th>
-                <th>Issuer Country</th>
-                <th>Result</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for tr in user_transactions %}
-            <tr>
-                <td>{{ tr.bin }}</td>
-                <td>{{ tr.amount }}</td>
-                <td>{{ tr.shoppercountrycode }}</td>
-                <td>{{ tr.cardverificationcodesupplied }}</td>
-                <td>{{ tr.cvcresponsecode }}</td>
-                <td>{{ tr.txvariantcode }}</td>
-                <td>{{ tr.Day }}</td>
-                <td>{{ tr.Month }}</td>
-                <td>{{ tr.time_in_seconds }}</td>
-                <td>{{ tr.issuercountrycode }}</td>
-                <td>{{ tr.result }}</td>
-            </tr>
-        {% endfor %}
+    <label for="country">Страна:</label>
+    <select name="country" id="country">
+      <option value="USA">США</option>
+      <option value="KZ">Казахстан</option>
+      <option value="GB">Великобритания</option>
+      <option value="DE">Германия</option>
+      <!-- Добавьте свои варианты стран -->
+    </select>
+    
+    <br>
+    
+    <label for="card_type">Тип карты:</label>
+    <select name="card_type" id="card_type">
+      <option value="VISA">VISA</option>
+      <option value="MASTERCARD">MasterCard</option>
+      <option value="MIR">Мир</option>
+      <!-- Добавьте при необходимости другие типы -->
+    </select>
+    
+    <br>
+    
+    <label for="cvv">CVV:</label>
+    <input type="number" name="cvv" id="cvv" placeholder="Например, 123">
+    
+    <br>
+    
+    <label for="threshold">Порог предсказания (0-1):</label>
+    <input type="number" step="0.01" min="0" max="1" name="threshold" id="threshold" placeholder="0.5">
+    
+    <br>
+    
+    <button class="butt3" type="submit" name="generate">Сгенерировать 100 транзакций</button>
+  </form>
 
-    <button class="butt3" type="button">
-        <a class="a3" href="{% url 'users:tex' %}">Назад</a>
-    </button>
-    {% else %}
-    <button class="butt3" type="button">
-        <a class="a3" href="{% url 'users:test' %}">Назад</a>
-    </button>
+  <hr>
+  <form method="post" action="{% url 'users:logout' %}">
+    {% csrf_token %}
+    <button class="butt3" type="submit">Выход</button>
+  </form>
 
-    {% endif %}
+{% else %}
+  <p>Пожалуйста, войдите в систему.</p>
+{% endif %}
