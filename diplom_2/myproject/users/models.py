@@ -41,18 +41,22 @@ class User(AbstractUser):
         self.full_clean()  # Вызываем валидацию перед сохранением
         super().save(*args, **kwargs)
 
-class Transactions(models.Model):
+class Transactions(models.Model): 
     bin = models.CharField(max_length=100, verbose_name='bin')
     amount = models.CharField(max_length=100, verbose_name='amount')
     shoppercountrycode = models.CharField(max_length=100, verbose_name='shoppercountrycode')
     cardverificationcodesupplied = models.CharField(max_length=100, verbose_name='cardverificationcodesupplied')
-    cvcresponsecode = models.CharField(max_length=100, verbose_name='txvariantcode')
-    txvariantcode = models.CharField(max_length=100, verbose_name='bin')
+    cvcresponsecode = models.CharField(max_length=100, verbose_name='cvcresponsecode')
+    txvariantcode = models.CharField(max_length=100, verbose_name='txvariantcode')
     Day = models.CharField(max_length=100, verbose_name='Day')
     Month = models.CharField(max_length=100, verbose_name='Month')
     time_in_seconds = models.CharField(max_length=100, verbose_name='time_in_seconds')
     issuercountrycode = models.CharField(max_length=100, verbose_name='issuercountrycode')
     result = models.CharField(max_length=100, verbose_name='result')
+    threshold = models.FloatField(default=0.0, verbose_name='threshold')
+
+    def __str__(self):
+        return f"Transaction {self.id}"
 
 
 class Services (models.Model):

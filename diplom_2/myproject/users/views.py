@@ -366,52 +366,44 @@ def services(request):
     return render(request, 'users/serv.html', {'page_obj': page_obj})
 
 
-def generate():
+# Допустим, этот код в users/utils.py
+
+import numpy as np
+import pandas as pd
+from tensorflow.keras.models import load_model
+from .models import Transactions
+
+def generate(
+    country=None,
+    card_type=None,
+    cvv=None,
+    threshold=0.5,
+    count=5
+):
     import numpy as np
     import pandas as pd
     from tensorflow.keras.models import load_model
     from .models import Transactions
 
-    # ===== 1. Подготовка данных и справочников =====
+    # Загрузка модели
     model_path = r"D:\diplom_django\cr_model-main\diplom_2\myproject\users\fraud_detection_model.h5"
     model = load_model(model_path)
     expected_features = model.input_shape[1]
     print(f"Модель ожидает {expected_features} признаков.")
 
-    num_samples = 5
+    num_samples = count
 
+    # Справочники для преобразования кодов в текст
     month_dict = {
-        1:  'Январь',  2:  'Февраль',   3:  'Март',
-        4:  'Апрель',  5:  'Май',       6:  'Июнь',
-        7:  'Июль',    8:  'Август',    9:  'Сентябрь',
-        10: 'Октябрь', 11: 'Ноябрь',    12: 'Декабрь'
+        1: 'Январь', 2: 'Февраль', 3: 'Март',
+        4: 'Апрель', 5: 'Май', 6: 'Июнь',
+        7: 'Июль', 8: 'Август', 9: 'Сентябрь',
+        10: 'Октябрь', 11: 'Ноябрь', 12: 'Декабрь'
     }
+    country_dict = {840: 'США', 643: 'Россия', 250: 'Франция', 356: 'Индия', 36: 'Венгрия', 276: 'Германия'}
+    tx_variant_dict = {101: 'Visa', 102: 'Mastercard', 103: 'Maestro', 104: 'Mir'}
 
-    country_dict = {
-        840: 'США',
-        643: 'Россия',
-        250: 'Франция',
-        356: 'Индия',
-        36:  'Венгрия',
-        276: 'Германия'
-    }
-
-    tx_variant_dict = {
-        101: 'Visa',
-        102: 'Mastercard',
-        103: 'Maestro',
-        104: 'Mir'
-    }
-
-    cvc_dict = {
-        0: 'CVC_0',
-        1: 'CVC_1',
-        2: 'CVC_2',
-        3: 'CVC_3',
-        4: 'CVC_4',
-        5: 'CVC_5'
-    }
-
+    # Генерация базовых данных
     numeric_data = pd.DataFrame({
         'bin': np.random.randint(400000, 500000, size=num_samples),
         'shoppercountrycode': np.random.choice(list(country_dict.keys()), size=num_samples),
@@ -421,45 +413,50 @@ def generate():
         'Day': np.random.randint(1, 29, size=num_samples),
         'Month': np.random.randint(1, 13, size=num_samples),
         'time_in_seconds': np.random.randint(0, 86400, size=num_samples),
-        'cardverificationcodesupplied': np.random.randint(0, 2, size=num_samples),
-        'cvcresponsecode': np.random.choice(list(cvc_dict.keys()), size=num_samples)
+        # Генерируем CVC Supplied как 0 или 1
+        'cardverificationcodesupplied': np.random.randint(0, 2, size=num_samples)
     })
 
+    # Генерация CVC Response:
+    # Если CVC supplied == 1, генерируем случайное 3-значное число, иначе пустую строку.
+    numeric_data['cvcresponsecode'] = numeric_data['cardverificationcodesupplied'].apply(
+        lambda x: str(np.random.randint(100, 1000)) if x == 1 else ""
+    )
+
+    # Добавляем столбец bin_length
     numeric_data['bin_length'] = numeric_data['bin'].astype(str).apply(len)
+
+    # Преобразование Month и кодов стран/типов в текст
     numeric_data['Month'] = numeric_data['Month'].apply(lambda x: month_dict[x])
     numeric_data['shoppercountrycode'] = numeric_data['shoppercountrycode'].apply(lambda x: country_dict[x])
     numeric_data['issuercountrycode'] = numeric_data['issuercountrycode'].apply(lambda x: country_dict[x])
     numeric_data['txvariantcode'] = numeric_data['txvariantcode'].apply(lambda x: tx_variant_dict[x])
-    numeric_data['cvcresponsecode'] = numeric_data['cvcresponsecode'].apply(lambda x: cvc_dict[x])
 
+    # Если переданы параметры, фиксируем соответствующие поля
+    if country:
+        numeric_data['shoppercountrycode'] = country
+    if card_type:
+        numeric_data['txvariantcode'] = card_type
+    if cvv:
+        numeric_data['cvcresponsecode'] = cvv
+
+    # Преобразуем значение CVC Supplied: 0 -> "Нет", 1 -> "Да"
+    numeric_data['cardverificationcodesupplied'] = numeric_data['cardverificationcodesupplied'].map({0: "Нет", 1: "Да"})
+
+    # Генерация "модели" для демонстрационных целей (здесь используется случайный DataFrame)
+    # Этот блок можно изменить в зависимости от реальной логики подготовки данных для модели
     import copy
-    original_data = copy.deepcopy(numeric_data)
-
     df_for_model = pd.DataFrame()
     feature_cols = [
-        'bin',
-        'amount',
-        'shoppercountrycode',
-        'cardverificationcodesupplied',
-        'cvcresponsecode',
-        'txvariantcode',
-        'Day',
-        'Month',
-        'time_in_seconds',
-        'issuercountrycode',
-        'bin_length'
+        'bin', 'amount', 'shoppercountrycode', 'cardverificationcodesupplied',
+        'cvcresponsecode', 'txvariantcode', 'Day', 'Month', 'time_in_seconds',
+        'issuercountrycode', 'bin_length'
     ]
     df_for_model[feature_cols] = np.random.randint(0, 1000, size=(num_samples, len(feature_cols)))
 
     features_to_multiply = [
-        'shoppercountrycode',
-        'cardverificationcodesupplied',
-        'cvcresponsecode',
-        'txvariantcode',
-        'Day',
-        'Month',
-        'time_in_seconds',
-        'issuercountrycode'
+        'shoppercountrycode', 'cardverificationcodesupplied', 'cvcresponsecode',
+        'txvariantcode', 'Day', 'Month', 'time_in_seconds', 'issuercountrycode'
     ]
     for col in features_to_multiply:
         multiplier = np.random.uniform(1.0, 10.0)
@@ -472,6 +469,8 @@ def generate():
         predicted_values = np.argmax(predictions, axis=1)
     else:
         predicted_values = predictions.flatten()
+
+    # Пример случайной подмены части предсказаний
     total = len(predicted_values)
     count_to_replace = np.random.randint(1, total + 1)
     indices_to_replace = np.random.choice(total, size=count_to_replace, replace=False)
@@ -489,10 +488,7 @@ def generate():
     numeric_data['Prediction'] = predicted_values
     numeric_data['Prediction_result'] = numeric_data['Prediction'].apply(map_prediction)
 
-    print("Сгенерированные «текстовые» данные с предсказанием:")
-    print(numeric_data)
-
-    numeric_data.to_csv('predictions.csv', index=False, encoding='utf-8')
+    # Сохранение транзакций в базе данных с указанием порога предсказания
     for idx, row in numeric_data.iterrows():
         Transactions.objects.create(
             bin=str(row['bin']),
@@ -505,53 +501,73 @@ def generate():
             Month=str(row['Month']),
             time_in_seconds=str(row['time_in_seconds']),
             issuercountrycode=str(row['issuercountrycode']),
-            result=row['Prediction_result']
+            result=row['Prediction_result'],
+            threshold=threshold  # сохраняем значение порога
         )
-    numeric_data['amount'] = numeric_data['amount'].astype(float)
-    report_by_month = numeric_data.groupby('Month').agg(
-        total_transactions=('bin', 'count'),
-        total_amount=('amount', 'sum')
-    )
-    report_by_month.to_csv('report_by_month.csv', encoding='utf-8')
-    print("\n=== Отчёт по месяцам ===")
-    print(report_by_month)
 
-    report_by_country = numeric_data.groupby('shoppercountrycode').agg(
-        total_transactions=('bin', 'count'),
-        total_amount=('amount', 'sum')
-    )
-    report_by_country.to_csv('report_by_country.csv', encoding='utf-8')
-    print("\n=== Отчёт по странам (покупатель) ===")
-    print(report_by_country)
+    predict_str = f"Создано {num_samples} транзакций. Предсказания: {set(numeric_data['Prediction'])}"
+    return predict_str, numeric_data
 
-    report_by_result = numeric_data.groupby('Prediction_result').agg(
-        count=('bin', 'count'),
-        average_amount=('amount', 'mean')
-    )
-    report_by_result.to_csv('report_by_result.csv', encoding='utf-8')
-    print("\n=== Отчёт по результату транзакции ===")
-    print(report_by_result)
-
-    return predicted_values, numeric_data
 
 
 def generated(request):
-    predict, data = generate()
-    if request.method == 'POST' and 'add_report' in request.POST:
-        form = ReportsForm(request.POST)
-        if form.is_valid():
-            report = form.save(commit=False)
-            report.user = request.user
-            report.save()
-            log_notification(request.user, "Вы добавили новый отчёт.")
-            messages.success(request, "Отчёт успешно добавлен!")
-            return redirect('users:test')
-        else:
-            messages.error(request, "Произошла ошибка при сохранении отчёта.")
+    """
+    Обрабатывает POST-запросы для:
+      - Динамической генерации транзакций (поля country, card_type, cvv, threshold).
+      - Сохранения нового отчёта (ReportsForm).
+
+    Затем возвращает данные (включая сгенерированные) в шаблон test.html.
+    """
+    # Параметры, которые мы передадим в шаблон
+    predict = None               # Строка-резюме от функции generate
+    data_as_list = []            # Список словарей, чтобы не было проблем с DataFrame
+    threshold_value = 0.5        # Значение по умолчанию
+
+    # Создаём форму для отчёта (или обработаем POST)
+    form = ReportsForm()
+
+    if request.method == 'POST':
+        # 1) Если нажали кнопку "Сгенерировать 100 транзакций"
+        if 'generate' in request.POST:
+            country = request.POST.get('country', '')
+            card_type = request.POST.get('card_type', '')
+            cvv = request.POST.get('cvv', '')
+
+            # Пробуем считать threshold
+            try:
+                threshold_value = float(request.POST.get('threshold', 0.5))
+            except ValueError:
+                threshold_value = 0.5
+
+            # Вызываем нашу функцию generate (которая возвращает (predict_str, numeric_data))
+            predict, df = generate(
+                country=country,
+                card_type=card_type,
+                cvv=cvv,
+                threshold=threshold_value,
+                count=100  # или другое число, если нужно
+            )
+
+            # Преобразуем DataFrame в список словарей, чтобы в шаблоне {% if generated_data %} работало
+            data_as_list = df.to_dict(orient='records')
+
+        # 2) Если нажали кнопку "Сохранить отчёт"
+        if 'add_report' in request.POST:
+            form = ReportsForm(request.POST)
+            if form.is_valid():
+                report = form.save(commit=False)
+                report.user = request.user
+                report.save()
+                messages.success(request, "Отчёт успешно добавлен!")
+                # Перенаправляем (может быть на test или на другую страницу)
+                return redirect('users:test')
+            else:
+                messages.error(request, "Произошла ошибка при сохранении отчёта.")
     else:
+        # Если GET-запрос, просто создаём форму
         form = ReportsForm()
 
-    # Фильтрация отчётов
+    # ===== Пример фильтрации отчётов (если нужно) =====
     user_reports = Reports.objects.filter(user=request.user)
     report_name = request.GET.get('report_name', '').strip()
     report_date = request.GET.get('report_date', '').strip()
@@ -560,11 +576,12 @@ def generated(request):
     if report_date:
         user_reports = user_reports.filter(date=report_date)
 
-    # Фильтрация транзакций
+    # ===== Пример фильтрации транзакций (если нужно) =====
     user_transactions = Transactions.objects.all()
     transaction_bin = request.GET.get('transaction_bin', '').strip()
     transaction_day = request.GET.get('transaction_day', '').strip()
     transaction_month = request.GET.get('transaction_month', '').strip()
+
     if transaction_bin:
         user_transactions = user_transactions.filter(bin__icontains=transaction_bin)
     if transaction_day:
@@ -572,13 +589,20 @@ def generated(request):
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
+    # Подготавливаем контекст и рендерим в test.html
     context = {
         'form': form,
         'user_reports': user_reports,
         'user_transactions': user_transactions,
-    }
 
+        # Данные, связанные с генерацией
+        'predict': predict,
+        'generated_data': data_as_list,    # список словарей (не DataFrame)
+        'threshold': threshold_value
+    }
     return render(request, 'users/test.html', context)
+
+
 
 
 def tex(request):
@@ -632,9 +656,10 @@ def tex(request):
     return render(request, 'users/tex.html', context)
 
 
+# views.py
 def test_one(request):
-    # Обработка GET-запроса для добавления отчёта
-    if request.method == 'GET' and 'add_report' in request.POST:
+    # Если POST с добавлением отчёта
+    if request.method == 'POST' and 'add_report' in request.POST:
         form = ReportsForm(request.POST)
         if form.is_valid():
             report = form.save(commit=False)
@@ -669,9 +694,9 @@ def test_one(request):
     if transaction_month:
         user_transactions = user_transactions.filter(Month=transaction_month)
 
-    # Проверка роли пользователя
+    # Проверка роли пользователя (сначала проверяем, что role не None)
     show_elements = False
-    if request.user.role:
+    if getattr(request.user, 'role', None):
         show_elements = (request.user.role.name == "one")
 
     context = {
@@ -682,6 +707,8 @@ def test_one(request):
     }
 
     return render(request, 'users/tex_one.html', context)
+
+
 
 
 def tex_one(request):
